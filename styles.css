@@ -1,0 +1,1154 @@
+/* ============================================================
+   Weekly TODO — Styles
+   ============================================================ */
+
+/* ---- Reset & Variables ------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #0f1117;
+  --bg-card:      #1a1d27;
+  --bg-card-hover:#22253a;
+  --bg-surface:   #161822;
+  --border:       #2a2d3e;
+  --text:         #e1e4ed;
+  --text-dim:     #8b8fa7;
+  --text-faint:   #555973;
+  --accent:       #6c5ce7;
+  --accent-hover: #7e6ff0;
+  --green:        #00b894;
+  --yellow:       #fdcb6e;
+  --orange:       #e17055;
+  --red:          #d63031;
+  --red-deep:     #b71540;
+  --today-border: #6c5ce7;
+  --radius:       10px;
+  --radius-sm:    6px;
+  --shadow:       0 2px 12px rgba(0,0,0,.35);
+  --font:         'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono:         'Cascadia Code', 'Fira Code', monospace;
+}
+
+html { font-size: 14px; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ---- Scrollbar -------------------------------------------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ---- Top Bar ---------------------------------------------- */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+#search-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px 7px 32px;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  width: 260px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+#search-input:focus { border-color: var(--accent); }
+
+.top-bar-right { display: flex; gap: 8px; }
+
+.icon-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all .2s;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* ---- Stats Bar -------------------------------------------- */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 24px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.stat-card {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.stat-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.stat-overdue { color: var(--red); }
+
+.stat-label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ---- Week Navigation -------------------------------------- */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+}
+
+.nav-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+}
+.nav-btn:hover { color: var(--text); border-color: var(--accent); }
+
+.nav-today-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.nav-today-btn:hover { background: var(--accent-hover); }
+
+.nav-summary-btn {
+  background: var(--bg-card);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.nav-summary-btn:hover { color: var(--text); border-color: var(--accent); }
+.nav-summary-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.week-label {
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 200px;
+  text-align: center;
+}
+
+/* ---- Week Grid -------------------------------------------- */
+.week-grid {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px 24px;
+  flex: 1;
+  min-height: 0;
+}
+
+.week-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Day Column ------------------------------------------- */
+.day-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.day-column.is-today {
+  border-color: var(--today-border);
+  box-shadow: 0 0 0 1px var(--today-border), var(--shadow);
+}
+
+.day-column.is-past {
+  opacity: .85;
+}
+
+.day-column.drag-over {
+  border-color: var(--accent);
+  background: rgba(108, 92, 231, .06);
+}
+
+.day-header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-name {
+  font-weight: 700;
+  font-size: .85rem;
+  display: block;
+}
+
+.day-date {
+  font-size: .7rem;
+  color: var(--text-dim);
+}
+
+.day-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.day-estimate {
+  font-size: .65rem;
+  font-family: var(--mono);
+  color: var(--accent);
+  background: rgba(108, 92, 231, .12);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.day-count {
+  font-size: .65rem;
+  color: var(--text-dim);
+}
+
+.day-tasks {
+  flex: 1;
+  padding: 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---- Task Card -------------------------------------------- */
+.task-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: grab;
+  transition: all .2s;
+  position: relative;
+}
+
+.task-card:hover {
+  border-color: var(--text-dim);
+  background: var(--bg-card-hover);
+}
+
+.task-card.dragging {
+  opacity: .4;
+  transform: rotate(2deg);
+}
+
+.task-card.task-done {
+  opacity: .45;
+}
+
+.task-card.task-done .task-title {
+  text-decoration: line-through;
+}
+
+/* ---- Late-ness levels (progressive red) ------------------- */
+.task-card.late-1 {
+  border-left: 3px solid var(--orange);
+  background: rgba(225, 112, 85, .06);
+}
+.task-card.late-2 {
+  border-left: 3px solid var(--red);
+  background: rgba(214, 48, 49, .08);
+}
+.task-card.late-3 {
+  border-left: 4px solid var(--red);
+  background: rgba(214, 48, 49, .14);
+  box-shadow: inset 0 0 12px rgba(214, 48, 49, .08);
+}
+.task-card.late-4 {
+  border-left: 5px solid var(--red-deep);
+  background: rgba(183, 21, 64, .18);
+  box-shadow: inset 0 0 20px rgba(183, 21, 64, .12);
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: inset 0 0 20px rgba(183,21,64,.12); }
+  50%      { box-shadow: inset 0 0 30px rgba(183,21,64,.22); }
+}
+
+/* (Category border colours are set inline via JS) */
+
+.task-top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.task-check {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-dim);
+  background: transparent;
+  color: #fff;
+  font-size: .7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+  margin-top: 1px;
+}
+
+.task-check:hover { border-color: var(--green); }
+.task-check.checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.task-title {
+  flex: 1;
+  font-size: .8rem;
+  line-height: 1.35;
+  word-break: break-word;
+  cursor: pointer;
+}
+.task-title:hover { color: var(--accent); }
+
+.task-delete {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity .2s, color .2s;
+}
+.task-card:hover .task-delete { opacity: 1; }
+.task-delete:hover { color: var(--red); }
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.task-deadline,
+.task-estimate,
+.task-category {
+  font-size: .6rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.task-deadline {
+  background: rgba(108, 92, 231, .12);
+  color: var(--accent);
+}
+.task-deadline.overdue {
+  background: rgba(214, 48, 49, .15);
+  color: var(--red);
+}
+
+.task-estimate {
+  background: rgba(0, 184, 148, .12);
+  color: var(--green);
+  font-family: var(--mono);
+}
+
+.task-category {
+  /* background & color set inline by JS per category */
+  font-size: .6rem;
+}
+
+/* ---- Late Badge (backlog late tasks) ---------------------- */
+.task-late-badge {
+  font-size: .6rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  background: rgba(214, 48, 49, .18);
+  color: var(--red);
+  letter-spacing: .2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ---- Add Task Button -------------------------------------- */
+.quick-add {
+  margin: 6px 8px 8px;
+}
+
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: .75rem;
+  transition: all .2s;
+}
+
+.quick-add-input {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: .8rem;
+  font-family: var(--font);
+  outline: none;
+  animation: fadeInInput .15s ease;
+}
+
+@keyframes fadeInInput {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.quick-add-input::placeholder {
+  color: var(--text-faint);
+}
+
+.backlog-quick-add {
+  margin: 8px 10px 10px;
+}
+.add-task-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(108, 92, 231, .05);
+}
+
+/* ---- Sidebar (Deadlines + Backlog) ------------------------ */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 220px);
+}
+
+/* ---- Backlog Panel ---------------------------------------- */
+.backlog-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 160px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+
+.backlog-panel.drag-over {
+  border-color: var(--accent);
+  background: rgba(108, 92, 231, .04);
+}
+
+.backlog-header {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.backlog-header h2 {
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.backlog-count {
+  font-size: .65rem;
+  color: var(--text-dim);
+  background: rgba(255,255,255,.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.backlog-estimate {
+  font-size: .65rem;
+  font-family: var(--mono);
+  color: var(--accent);
+  margin-left: auto;
+}
+
+.backlog-tasks {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dim);
+  font-size: .85rem;
+}
+
+/* ---- Deadlines Panel -------------------------------------- */
+.deadlines-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  max-height: 45%;
+  overflow: hidden;
+}
+
+.deadlines-header {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deadlines-header h2 {
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.deadlines-count {
+  font-size: .65rem;
+  color: var(--text-dim);
+  background: rgba(255,255,255,.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.deadlines-tasks {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deadline-group {
+  margin-bottom: 6px;
+}
+
+.deadline-group-header {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-dim);
+  padding: 4px 6px 2px;
+}
+
+.deadline-group-header.overdue {
+  color: var(--red);
+}
+
+.deadline-group-header.is-today {
+  color: var(--accent);
+}
+
+.deadline-task-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: .78rem;
+  transition: background .15s;
+}
+
+.deadline-task-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.deadline-task-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deadline-assigned {
+  font-size: .6rem;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.deadline-assigned.unscheduled {
+  color: var(--orange);
+  font-style: italic;
+}
+
+/* ---- Day Column: Has Deadline ----------------------------- */
+.day-column.has-deadline {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px rgba(225, 112, 85, .25);
+}
+
+.day-column.has-deadline .day-header {
+  border-bottom-color: rgba(225, 112, 85, .3);
+}
+
+.day-column.has-deadline.is-today {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px var(--orange), var(--shadow);
+}
+
+.day-deadline-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.day-deadline-tag {
+  font-size: .6rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(225, 112, 85, .12);
+  color: var(--orange);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-deadline-tag.overdue {
+  background: rgba(214, 48, 49, .15);
+  color: var(--red);
+}
+
+/* ---- Modal ------------------------------------------------ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 480px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  transform: translateY(20px);
+  transition: transform .25s;
+}
+
+.modal-overlay.open .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--red); }
+
+/* ---- Form ------------------------------------------------- */
+.task-form {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-dim);
+}
+
+.form-group label small {
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: .7;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color .2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--accent);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn {
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all .2s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--text-dim); }
+
+/* ---- Toast ------------------------------------------------ */
+.toast-container {
+  position: fixed;
+  bottom: 60px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateX(30px);
+  transition: all .3s;
+  box-shadow: var(--shadow);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-success { background: var(--green); color: #fff; }
+.toast-error { background: var(--red); color: #fff; }
+
+/* ---- Shortcut Bar ----------------------------------------- */
+.shortcut-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 8px 24px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  font-size: .7rem;
+  color: var(--text-faint);
+  position: sticky;
+  bottom: 0;
+}
+
+kbd {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--text-dim);
+  margin: 0 2px;
+}
+
+/* ---- Summary Page ----------------------------------------- */
+.summary-container {
+  flex: 1;
+  padding: 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  overflow: hidden;
+}
+
+.summary-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.summary-card.summary-overview {
+  grid-column: 1 / -1;
+}
+
+.summary-stat-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.summary-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.summary-stat-label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.summary-bar {
+  height: 10px;
+  background: rgba(255,255,255,.06);
+  border-radius: 5px;
+  display: flex;
+  overflow: hidden;
+}
+
+.bar-done {
+  background: var(--green);
+  height: 100%;
+  transition: width .5s ease;
+}
+
+.bar-late {
+  background: var(--red);
+  height: 100%;
+  transition: width .5s ease;
+}
+
+.summary-bar-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: .7rem;
+  color: var(--text-dim);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.dot-done  { background: var(--green); }
+.dot-late  { background: var(--red); }
+.dot-pending { background: var(--accent); }
+
+.cat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+
+.summary-table th {
+  text-align: left;
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+}
+
+.summary-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+
+.summary-table tbody tr:hover {
+  background: rgba(255,255,255,.03);
+}
+
+.deadline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.deadline-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: .8rem;
+}
+
+.deadline-item.deadline-late {
+  background: rgba(214, 48, 49, .08);
+}
+
+.deadline-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deadline-date {
+  font-size: .7rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.deadline-date.overdue {
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* ---- Responsive ------------------------------------------- */
+@media (max-width: 1200px) {
+  .week-grid {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+    flex-direction: row;
+    gap: 12px;
+  }
+  .sidebar > * {
+    flex: 1;
+    max-height: 400px;
+  }
+  .backlog-panel {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .week-container {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .top-bar { padding: 10px 12px; }
+  .top-bar-left { gap: 10px; }
+  #search-input { width: 140px; }
+  .stats-bar { gap: 12px; padding: 10px 12px; }
+  .week-grid { padding: 0 10px 16px; }
+  .week-container { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .shortcut-bar { display: none; }
+
+  .week-nav { padding: 10px 12px; }
+  .week-label { font-size: .85rem; min-width: 140px; }
+}
