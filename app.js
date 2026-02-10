@@ -99,6 +99,8 @@ const App = (() => {
       assignedDate,
       deadline,
       estimateMinutes: parseInt(estimateMinutes) || 0,
+      actualMinutes: 0,
+      timerStartedAt: null,
       category,
       sortOrder: Date.now(),
       done: false,
@@ -152,6 +154,73 @@ const App = (() => {
     const h = Math.floor(m / 60);
     const mins = m % 60;
     return h ? `${h}h${mins ? ' ' + mins + 'm' : ''}` : `${mins}m`;
+  }
+
+  // ---- Timer helpers ----------------------------------------
+  let timerInterval = null;
+
+  function getActualMinutes(task) {
+    let total = task.actualMinutes || 0;
+    if (task.timerStartedAt) {
+      total += (Date.now() - new Date(task.timerStartedAt).getTime()) / 60000;
+    }
+    return Math.round(total);
+  }
+
+  function isTimerRunning(task) {
+    return !!task.timerStartedAt;
+  }
+
+  function toggleTimer(id) {
+    const task = Storage.getAllTasks().find(t => t.id === id);
+    if (!task) return;
+    if (task.timerStartedAt) {
+      // Stop: accumulate elapsed time
+      const elapsed = (Date.now() - new Date(task.timerStartedAt).getTime()) / 60000;
+      Storage.updateTask(id, {
+        actualMinutes: (task.actualMinutes || 0) + elapsed,
+        timerStartedAt: null,
+      });
+    } else {
+      // Start: record start time. Stop any other running timer first.
+      const all = Storage.getAllTasks();
+      const running = all.find(t => t.timerStartedAt && t.id !== id);
+      if (running) {
+        const elapsed = (Date.now() - new Date(running.timerStartedAt).getTime()) / 60000;
+        Storage.updateTask(running.id, {
+          actualMinutes: (running.actualMinutes || 0) + elapsed,
+          timerStartedAt: null,
+        });
+      }
+      Storage.updateTask(id, { timerStartedAt: new Date().toISOString() });
+    }
+    render();
+  }
+
+  function resetTimer(id) {
+    Storage.updateTask(id, { actualMinutes: 0, timerStartedAt: null });
+    render();
+  }
+
+  function formatTimer(minutes) {
+    const m = Math.round(minutes);
+    if (m < 1) return '<1m';
+    const h = Math.floor(m / 60);
+    const mins = m % 60;
+    return h ? `${h}h ${mins}m` : `${mins}m`;
+  }
+
+  function startTimerTick() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+      // Update just the timer displays without full re-render
+      const all = Storage.getAllTasks();
+      const running = all.find(t => t.timerStartedAt);
+      if (!running) return;
+      document.querySelectorAll(`.task-card[data-task-id="${running.id}"] .task-timer-display`).forEach(el => {
+        el.textContent = formatTimer(getActualMinutes(running));
+      });
+    }, 5000); // Update every 5 seconds
   }
 
   // ---- Category helpers (autocomplete) ----------------------
@@ -328,9 +397,10 @@ const App = (() => {
                   onclick="App.toggleDone('${task.id}')"
                   title="${task.done ? 'Mark undone' : 'Mark done'}">${task.done ? '✓' : ''}</button>
           <span class="task-title" onclick="App.openEditModal('${task.id}')">${escapeHtml(task.title)}</span>
+          <button class="task-timer-btn ${isTimerRunning(task) ? 'running' : ''}" onclick="event.stopPropagation(); App.toggleTimer('${task.id}')" title="${isTimerRunning(task) ? 'Stop timer' : 'Start timer'}">${isTimerRunning(task) ? '⏸' : '▶'}</button>
           <button class="task-delete" onclick="App.confirmDelete('${task.id}')" title="Delete">×</button>
         </div>
-        <div class="task-meta">${lateBadge}${deadlineHtml}${estHtml}${categoryHtml}</div>
+        <div class="task-meta">${lateBadge}${deadlineHtml}${estHtml}${renderTimerBadge(task)}${categoryHtml}</div>
       </div>`;
   }
 
@@ -432,9 +502,10 @@ const App = (() => {
     const catMap = {};
     all.forEach(t => {
       const cat = t.category || 'Uncategorized';
-      if (!catMap[cat]) catMap[cat] = { total: 0, done: 0, missed: 0, pending: 0, est: 0, estDone: 0 };
+      if (!catMap[cat]) catMap[cat] = { total: 0, done: 0, missed: 0, pending: 0, est: 0, estDone: 0, actual: 0 };
       catMap[cat].total++;
       catMap[cat].est += t.estimateMinutes || 0;
+      catMap[cat].actual += getActualMinutes(t);
       if (t.done) { catMap[cat].done++; catMap[cat].estDone += t.estimateMinutes || 0; }
       else if (isLate(t)) catMap[cat].missed++;
       else catMap[cat].pending++;
@@ -443,6 +514,8 @@ const App = (() => {
     const totalEst = all.reduce((s, t) => s + (t.estimateMinutes || 0), 0);
     const doneEst = done.reduce((s, t) => s + (t.estimateMinutes || 0), 0);
     const missedEst = missed.reduce((s, t) => s + (t.estimateMinutes || 0), 0);
+    const totalActual = all.reduce((s, t) => s + getActualMinutes(t), 0);
+    const doneActual = done.reduce((s, t) => s + getActualMinutes(t), 0);
 
     // Weekly breakdown
     const weekDates = getCurrentWeekDates();
@@ -470,6 +543,12 @@ const App = (() => {
             <div class="summary-stat"><span class="summary-stat-value" style="color:var(--red)">${formatMinutes(missedEst)}</span><span class="summary-stat-label">Late Est.</span></div>
             <div class="summary-stat"><span class="summary-stat-value" style="color:var(--accent)">${formatMinutes(totalEst - doneEst - missedEst)}</span><span class="summary-stat-label">Remaining</span></div>
           </div>
+          <div class="summary-stat-row" style="margin-top:12px">
+            <div class="summary-stat"><span class="summary-stat-value" style="color:var(--yellow)">${formatMinutes(totalActual)}</span><span class="summary-stat-label">Actual Time</span></div>
+            <div class="summary-stat"><span class="summary-stat-value" style="color:var(--yellow)">${formatMinutes(doneActual)}</span><span class="summary-stat-label">Done Actual</span></div>
+            <div class="summary-stat"><span class="summary-stat-value" style="color:${totalEst && totalActual > totalEst ? 'var(--red)' : 'var(--green)'}">${totalEst ? Math.round(totalActual / totalEst * 100) + '%' : '—'}</span><span class="summary-stat-label">Accuracy</span></div>
+            <div class="summary-stat"><span class="summary-stat-value" style="color:var(--text-dim)">${totalEst ? (totalActual > totalEst ? '+' : '') + formatMinutes(Math.abs(totalActual - totalEst)) : '—'}</span><span class="summary-stat-label">${totalActual > totalEst ? 'Over Est.' : 'Under Est.'}</span></div>
+          </div>
           ${all.length ? `
           <div class="summary-bar" style="margin-top:16px">
             <div class="bar-done" style="width:${(done.length/all.length*100).toFixed(1)}%"></div>
@@ -485,10 +564,10 @@ const App = (() => {
         <div class="summary-card">
           <h3>🏷 By Category</h3>
           <table class="summary-table">
-            <thead><tr><th>Category</th><th>Tasks</th><th>Done</th><th>Late</th><th>Time</th></tr></thead>
+            <thead><tr><th>Category</th><th>Tasks</th><th>Done</th><th>Late</th><th>Est.</th><th>Actual</th></tr></thead>
             <tbody>${cats.map(cat => {
               const c = catMap[cat]; const col = categoryColor(cat === 'Uncategorized' ? '' : cat);
-              return `<tr><td><span class="cat-dot" style="background:${col}"></span>${escapeHtml(cat)}</td><td>${c.total}</td><td style="color:var(--green)">${c.done}</td><td style="color:var(--red)">${c.missed}</td><td>${formatMinutes(c.est)}</td></tr>`;
+              return `<tr><td><span class="cat-dot" style="background:${col}"></span>${escapeHtml(cat)}</td><td>${c.total}</td><td style="color:var(--green)">${c.done}</td><td style="color:var(--red)">${c.missed}</td><td>${formatMinutes(c.est)}</td><td style="color:var(--yellow)">${formatMinutes(c.actual)}</td></tr>`;
             }).join('')}</tbody>
           </table>
         </div>
@@ -592,11 +671,31 @@ const App = (() => {
     render();
   }
 
+  function renderTimerBadge(task) {
+    const actual = getActualMinutes(task);
+    if (!actual && !task.timerStartedAt) return '';
+    const running = isTimerRunning(task);
+    const est = task.estimateMinutes || 0;
+    let cls = 'task-timer-badge';
+    if (running) cls += ' timer-running';
+    if (est && actual > est) cls += ' timer-over';
+    const display = formatTimer(actual);
+    const vs = est ? ` / ${formatMinutes(est)}` : '';
+    return `<span class="${cls}"><span class="task-timer-display">${display}</span>${vs}</span>`;
+  }
+
   // ---- Actions ----------------------------------------------
   function toggleDone(id) {
     const task = Storage.getAllTasks().find(t => t.id === id);
     if (!task) return;
-    Storage.updateTask(id, { done: !task.done, completedAt: !task.done ? new Date().toISOString() : null });
+    const updates = { done: !task.done, completedAt: !task.done ? new Date().toISOString() : null };
+    // Stop timer when marking done
+    if (!task.done && task.timerStartedAt) {
+      const elapsed = (Date.now() - new Date(task.timerStartedAt).getTime()) / 60000;
+      updates.actualMinutes = (task.actualMinutes || 0) + elapsed;
+      updates.timerStartedAt = null;
+    }
+    Storage.updateTask(id, updates);
     render();
   }
 
@@ -686,6 +785,7 @@ const App = (() => {
     backlog.addEventListener('dragleave', e => { if (!backlog.contains(e.relatedTarget)) backlog.classList.remove('drag-over'); });
     backlog.addEventListener('drop', handleBacklogDrop);
 
+    startTimerTick();
     setInterval(() => { const n = new Date(); if (n.getHours() === 0 && n.getMinutes() === 0) render(); }, 60000);
     console.log('✅ TODO App initialized');
   }
@@ -694,7 +794,7 @@ const App = (() => {
     init, render, shiftWeek, goToThisWeek,
     startQuickAdd, startBacklogQuickAdd,
     openEditModal, closeModal,
-    toggleDone, confirmDelete,
+    toggleDone, confirmDelete, toggleTimer, resetTimer,
     handleDragStart, handleDragEnd, handleDrop, handleBacklogDrop,
     toggleSummary,
     exportTasks, importTasks, showToast,

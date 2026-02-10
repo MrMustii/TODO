@@ -18,6 +18,7 @@ Just open **`index.html`** in your browser. That's it — no install, no build s
 | **Mark Done** | Click the circle to toggle completion |
 | **Late Task Alerts** | Overdue tasks glow progressively redder; late tasks in backlog show a ⚠ LATE badge |
 | **Time Estimates** | Set minutes per task; see total remaining work per day |
+| **Time Tracking** | ▶/⏸ Start/stop a timer on any task — tracks actual vs estimated time |
 | **Category Colours** | Each category gets a unique colour — visible as left border + badge |
 | **Drag & Drop** | Drag tasks between days, reorder within a day, or drag to/from backlog |
 | **Summary Page** | 📊 Toggle a dashboard with overall stats, per-category breakdown, weekly overview, and upcoming deadlines |
@@ -56,10 +57,22 @@ Each category automatically gets a unique colour from a 15-colour palette (deter
 - A **tinted badge** on the task metadata
 - A **dot** in the summary and deadlines panels
 
+## Time Tracking
+
+Every task card has a ▶ play button that appears on hover:
+- Click **▶** to start the timer — it turns green and pulses
+- Click **⏸** to pause — elapsed time is saved
+- Only **one timer** can run at a time — starting a new one auto-stops the previous
+- Marking a task **done** automatically stops its timer
+- A **yellow badge** shows actual time (e.g. `12m / 30m`) alongside the estimate
+- If actual time **exceeds** the estimate, the badge turns **red**
+- The **Summary page** shows accuracy stats: total actual vs estimated, percentage, and per-category actual time
+
 ## Summary Page
 
 Click **📊 Summary** in the navigation bar to see:
 - **Overall stats** — total / done / late / pending task counts and time estimates
+- **Actual vs Estimated** — total actual time, accuracy percentage, over/under estimate
 - **Progress bar** — visual done vs late vs pending breakdown
 - **By Category** — table with task counts and time per category
 - **This Week** — daily breakdown of tasks and remaining time
@@ -89,6 +102,8 @@ All data lives in `localStorage` under these keys:
   "assignedDate": "2026-02-08",
   "deadline": "2026-02-10",
   "estimateMinutes": 30,
+  "actualMinutes": 22.5,
+  "timerStartedAt": null,
   "category": "Work",
   "sortOrder": 1738972800000,
   "done": false,
