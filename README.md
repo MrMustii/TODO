@@ -1,153 +1,26 @@
-# ☑ Weekly TODO App
+# ☑ Weekly TODO
 
-A cloud-synced weekly task manager that runs in your browser. Dark-themed, keyboard-friendly, and designed for students & developers who want a clean week-at-a-glance view.
-
-## Quick Start
-
-1. Copy `firebase-config.template.js` to `firebase-config.js`
-2. Add your Firebase credentials (see setup below)
-3. Open **`index.html`** in your browser
-
-## Firebase Setup (Required for Cloud Sync)
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project
-3. Click **Add app** → **Web** (</> icon)
-4. Copy the config values into `firebase-config.js`
-5. Go to **Build → Firestore Database → Create database → Start in test mode**
-6. Set up security rules (see below)
-
-### Firestore Security Rules
-
-In Firebase Console → Firestore → Rules, paste:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/tasks/{taskId} {
-      allow read, write: if true; // For personal use
-      // For better security: allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-### Syncing Across Devices
-
-1. Open the app and press F12 → Console
-2. Find: `Firebase initialized. User ID: user_xxxxxxxx`
-3. On other devices, open console and run:
-   ```javascript
-   localStorage.setItem('todo_user_id', 'user_xxxxxxxx');
-   location.reload();
-   ```
+A minimal weekly task manager with cloud sync.
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| **Week Overview** | 7-day grid (Sunday → Saturday) showing all tasks per day |
-| **Deadlines Panel** | Dedicated sidebar panel listing all upcoming deadlines, grouped by date |
-| **Deadline Day Indicators** | Day columns with deadlines are highlighted in orange with tags showing what's due |
-| **Backlog** | Unassigned & late tasks — drag them to schedule |
-| **Inline Quick-Add** | Click `+` on any day, type a title, press Enter — edit modal opens for details |
-| **Mark Done** | Click the circle to toggle completion |
-| **Late Task Alerts** | Overdue tasks glow progressively redder; late tasks in backlog show a ⚠ LATE badge |
-| **Time Estimates** | Set minutes per task; see total remaining work per day |
-| **Time Tracking** | ▶/⏸ Start/stop a timer on any task — tracks actual vs estimated time |
-| **Category Colours** | Each category gets a unique colour — visible as left border + badge |
-| **Drag & Drop** | Drag tasks between days, reorder within a day, or drag to/from backlog |
-| **Summary Page** | 📊 Toggle a dashboard with overall stats, per-category breakdown, weekly overview, and upcoming deadlines |
-| **Search** | Real-time task filter across all days and backlog |
-| **Export / Import** | Backup & restore your data as JSON |
-| **Keyboard Shortcuts** | `N` = new task today, `←`/`→` = navigate weeks, `Esc` = close modal |
-| **Dark Theme** | Easy on the eyes |
-| **Responsive** | Works on desktop, tablet, and phone browsers |
-| **Offline** | 100% localStorage — no server, no internet required |
-
-## Deadline Indicators
-
-When a task has a deadline on a particular day, that day column in the week view will:
-- Get an **orange border** so it stands out visually
-- Show **deadline tags** in the header listing what's due that day
-- Overdue deadline tags turn **red**
-
-The **Deadlines Panel** on the right sidebar shows all upcoming deadlines grouped by date, with:
-- Which day they're scheduled on (or "unscheduled" if not assigned to a day)
-- Colour-coded category dots
-- Overdue group headers highlighted in red
-
-## Late Task Colouring
-
-Tasks with overdue deadlines or assigned dates become increasingly red:
-
-- **1 day late** → subtle orange border
-- **2–3 days late** → red border + light red background
-- **4–7 days late** → deeper red + inner glow
-- **7+ days late** → pulsing deep red
-
-## Category Colours
-
-Each category automatically gets a unique colour from a 15-colour palette (determined by a hash of the category name). The colour appears as:
-- A **left border** on the task card
-- A **tinted badge** on the task metadata
-- A **dot** in the summary and deadlines panels
-
-## Time Tracking
-
-Every task card has a ▶ play button that appears on hover:
-- Click **▶** to start the timer — it turns green and pulses
-- Click **⏸** to pause — elapsed time is saved
-- Only **one timer** can run at a time — starting a new one auto-stops the previous
-- Marking a task **done** automatically stops its timer
-- A **yellow badge** shows actual time (e.g. `12m / 30m`) alongside the estimate
-- If actual time **exceeds** the estimate, the badge turns **red**
-- The **Summary page** shows accuracy stats: total actual vs estimated, percentage, and per-category actual time
-
-## Summary Page
-
-Click **📊 Summary** in the navigation bar to see:
-- **Overall stats** — total / done / late / pending task counts and time estimates
-- **Actual vs Estimated** — total actual time, accuracy percentage, over/under estimate
-- **Progress bar** — visual done vs late vs pending breakdown
-- **By Category** — table with task counts and time per category
-- **This Week** — daily breakdown of tasks and remaining time
-- **Upcoming Deadlines** — sorted list of the next 15 deadlines
+- Infinite scrolling timeline
+- Drag & drop tasks between days
+- Deadlines panel with countdown
+- Category colors
+- Dark theme
+- Works offline
 
 ## Keyboard Shortcuts
 
 | Key | Action |
-|---|---|
-| `N` | Quick-add a task to today's column |
-| `←` | Previous week |
-| `→` | Next week |
+|-----|--------|
+| `N` | New task |
 | `Esc` | Close modal |
 
-## Data Storage
+## License
 
-All data lives in `localStorage` under these keys:
-- `todo_app_tasks` — array of task objects
-- `todo_app_settings` — user preferences
-
-### Task Object Shape
-
-```json
-{
-  "id": "uuid",
-  "title": "Task name",
-  "assignedDate": "2026-02-08",
-  "deadline": "2026-02-10",
-  "estimateMinutes": 30,
-  "actualMinutes": 22.5,
-  "timerStartedAt": null,
-  "category": "Work",
-  "sortOrder": 1738972800000,
-  "done": false,
-  "createdAt": "ISO timestamp",
-  "completedAt": null
-}
-```
+MIT
 
 ## Future: Phone Access Roadmap
 
