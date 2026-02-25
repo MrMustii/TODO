@@ -154,5 +154,7 @@ const Storage = (() => {
   };
 })();
 
-// Initialize sync on load
-Storage.initRealTimeSync();
+// Initialize sync after auth is ready
+authReady.then(() => {
+  Storage.initRealTimeSync();
+});

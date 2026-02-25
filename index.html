@@ -9,6 +9,24 @@
 </head>
 <body>
 
+  <!-- ===== Login Screen ===== -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-box">
+      <h1>☑ TODO</h1>
+      <p>Sign in to sync across devices</p>
+      <form id="auth-form">
+        <input type="email" id="auth-email" placeholder="Email" required />
+        <input type="password" id="auth-password" placeholder="Password (min 6 chars)" required minlength="6" />
+        <button type="submit" class="btn btn-primary" id="auth-submit">Sign In</button>
+      </form>
+      <p id="auth-error" class="auth-error"></p>
+      <p class="auth-hint">New here? Just enter email & password to create account.</p>
+    </div>
+  </div>
+
+  <!-- ===== App Container (hidden until logged in) ===== -->
+  <div id="app-container" style="display: none;">
+
   <!-- ===== Top Bar ===== -->
   <header class="top-bar">
     <div class="top-bar-left">
@@ -25,6 +43,9 @@
       </button>
       <button class="icon-btn" onclick="App.exportTasks()" title="Export backup">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l4-4m-4 4l-4-4M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+      </button>
+      <button class="icon-btn" onclick="Auth.signOut()" title="Sign out">
+        🚪
       </button>
     </div>
   </header>
@@ -118,9 +139,12 @@
     <span>Scroll to navigate · Drag tasks between days · <kbd>#tag</kbd> in quick-add</span>
   </footer>
 
+  </div><!-- End app-container -->
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   
   <!-- App Scripts -->
   <script src="firebase-config.js"></script>

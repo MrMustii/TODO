@@ -1,9 +1,6 @@
 # Dependencies
 node_modules/
 
-# Firebase config with API keys (keep private)
-firebase-config.js
-
 # OS files
 .DS_Store
 Thumbs.db

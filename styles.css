@@ -45,6 +45,76 @@ html, body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
 
+/* ---- Auth Screen ------------------------------------------ */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 9999;
+}
+
+.auth-box {
+  background: var(--bg-card);
+  padding: 2.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.auth-box h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.auth-box > p {
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+}
+
+#auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#auth-form input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+#auth-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+#auth-form button {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  font-size: 1rem;
+}
+
+.auth-error {
+  color: var(--red);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  min-height: 1.25rem;
+}
+
+.auth-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
 /* ---- Top Bar ---------------------------------------------- */
 .top-bar {
   display: flex;
