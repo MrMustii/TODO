@@ -1,10 +1,47 @@
 # ☑ Weekly TODO App
 
-A local, offline-first weekly task manager that runs in your browser. Dark-themed, keyboard-friendly, and designed for students & developers who want a clean week-at-a-glance view.
+A cloud-synced weekly task manager that runs in your browser. Dark-themed, keyboard-friendly, and designed for students & developers who want a clean week-at-a-glance view.
 
 ## Quick Start
 
-Just open **`index.html`** in your browser. That's it — no install, no build step.
+1. Copy `firebase-config.template.js` to `firebase-config.js`
+2. Add your Firebase credentials (see setup below)
+3. Open **`index.html`** in your browser
+
+## Firebase Setup (Required for Cloud Sync)
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project
+3. Click **Add app** → **Web** (</> icon)
+4. Copy the config values into `firebase-config.js`
+5. Go to **Build → Firestore Database → Create database → Start in test mode**
+6. Set up security rules (see below)
+
+### Firestore Security Rules
+
+In Firebase Console → Firestore → Rules, paste:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/tasks/{taskId} {
+      allow read, write: if true; // For personal use
+      // For better security: allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+### Syncing Across Devices
+
+1. Open the app and press F12 → Console
+2. Find: `Firebase initialized. User ID: user_xxxxxxxx`
+3. On other devices, open console and run:
+   ```javascript
+   localStorage.setItem('todo_user_id', 'user_xxxxxxxx');
+   location.reload();
+   ```
 
 ## Features
 

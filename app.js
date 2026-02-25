@@ -225,8 +225,9 @@ const App = (() => {
       category: task.category,
       recurrence: task.recurrence,
     });
-    Storage.addTask(newTask);
-    showToast(`🔄 Next: ${formatDate(nextDate)}`);
+    Storage.addTask(newTask).then(() => {
+      showToast(`🔄 Next: ${formatDate(nextDate)}`);
+    });
   }
 
   function recurrenceLabel(type) {
@@ -289,9 +290,10 @@ const App = (() => {
     }
 
     dragged.assignedDate = date;
-    Storage.saveTasks(tasks);
-    draggedTaskId = null;
-    refreshTimeline();
+    Storage.saveTasks(tasks).then(() => {
+      draggedTaskId = null;
+      refreshTimeline();
+    });
   }
 
   function handleBacklogDrop(e) {
@@ -326,9 +328,10 @@ const App = (() => {
     }
 
     dragged.assignedDate = null;
-    Storage.saveTasks(tasks);
-    draggedTaskId = null;
-    refreshTimeline();
+    Storage.saveTasks(tasks).then(() => {
+      draggedTaskId = null;
+      refreshTimeline();
+    });
   }
 
   // ---- Timeline: Infinite Scroll ----------------------------
@@ -683,10 +686,11 @@ const App = (() => {
         const { title, category } = parseQuickAdd(raw);
         if (title) {
           const task = createTask({ title, assignedDate, category });
-          Storage.addTask(task);
-          refreshTimeline();
-          // Open modal so user can set deadline / recurrence / category
-          openEditModal(task.id);
+          Storage.addTask(task).then(() => {
+            refreshTimeline();
+            // Open modal so user can set deadline / recurrence / category
+            openEditModal(task.id);
+          });
         }
       }
     }
@@ -749,9 +753,10 @@ const App = (() => {
         deadline: document.getElementById('task-deadline').value || null,
         category: document.getElementById('task-category-input').value.trim(),
         recurrence: document.getElementById('task-recurrence').value || '',
-      });
+      }).then(() => closeModal());
+    } else {
+      closeModal();
     }
-    closeModal();
   }
 
   // ---- Actions ----------------------------------------------
@@ -762,20 +767,20 @@ const App = (() => {
     Storage.updateTask(id, {
       done: nowDone,
       completedAt: nowDone ? new Date().toISOString() : null,
+    }).then(() => {
+      if (nowDone) {
+        handleRecurrence(task);
+        showToast('✅ Done!');
+      }
+      refreshTimeline();
     });
-    if (nowDone) {
-      handleRecurrence(task);
-      showToast('✅ Done!');
-    }
-    refreshTimeline();
   }
 
   function confirmDelete(id) {
     const task = Storage.getAllTasks().find(t => t.id === id);
     if (!task) return;
     if (confirm(`Delete "${task.title}"?`)) {
-      Storage.deleteTask(id);
-      refreshTimeline();
+      Storage.deleteTask(id).then(() => refreshTimeline());
     }
   }
 
@@ -805,9 +810,9 @@ const App = (() => {
     input.onchange = (e) => {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
-          Storage.importData(ev.target.result);
+          await Storage.importData(ev.target.result);
           // Full re-init of timeline
           initTimeline();
           renderBacklog();
@@ -862,6 +867,14 @@ const App = (() => {
     document.getElementById('task-form').addEventListener('submit', handleFormSubmit);
     document.getElementById('task-modal').addEventListener('click', e => { if (e.target.id === 'task-modal') closeModal(); });
     document.getElementById('search-input').addEventListener('input', e => handleSearch(e.target.value));
+
+    // Real-time sync: refresh UI when data changes from another device
+    Storage.onChange(() => {
+      refreshTimeline();
+      renderBacklog();
+      renderDeadlines();
+      updateSidebarBadges();
+    });
 
     // Sidebar drag-drop for backlog
     const sidebar = document.getElementById('sidebar');
