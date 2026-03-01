@@ -76,6 +76,23 @@ const App = (() => {
     } catch {}
   }
 
+  // ---- Day colour storage ----------------------------------
+  function getDayColor(date) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('dayColors') || '{}');
+      return stored[date] || null;
+    } catch { return null; }
+  }
+
+  function setDayColor(date, color) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('dayColors') || '{}');
+      if (color) stored[date] = color;
+      else delete stored[date];
+      localStorage.setItem('dayColors', JSON.stringify(stored));
+    } catch {}
+  }
+
   function isoWeekNumber(mondayDate) {
     // ISO 8601: week containing the Thursday; weeks start Monday
     const d = new Date(mondayDate + 'T12:00:00');
@@ -372,6 +389,88 @@ const App = (() => {
     });
   }
 
+  // ---- Day colour picker -----------------------------------
+  function getDayColorPalette() {
+    // Always include red, then one entry per category
+    const red = '#e74c3c';
+    const entries = [{ color: red, label: 'Red' }];
+    const seenColors = new Set([red]);
+    getAllCategories().forEach(cat => {
+      const c = categoryColor(cat);
+      if (!seenColors.has(c)) { seenColors.add(c); entries.push({ color: c, label: cat }); }
+      else {
+        // Same color already in list — just attach label to existing entry if it's 'Red'
+        const existing = entries.find(e => e.color === c);
+        if (existing && existing.label === 'Red') existing.label = cat;
+      }
+    });
+    return entries;
+  }
+
+  function openDayColorPicker(e, date) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Remove any existing picker
+    document.getElementById('day-color-picker')?.remove();
+
+    const current = getDayColor(date);
+    const picker = document.createElement('div');
+    picker.id = 'day-color-picker';
+    picker.className = 'day-color-picker';
+
+    const palette = getDayColorPalette();
+    const swatches = palette.map(({ color, label }) => {
+      const active = color === current ? ' active' : '';
+      return `<button class="dcp-swatch${active}" data-color="${color}">
+        <span class="dcp-dot" style="background:${color}"></span>
+        <span class="dcp-label">${escapeHtml(label)}</span>
+      </button>`;
+    }).join('');
+
+    picker.innerHTML = `
+      <div class="dcp-swatches">${swatches}</div>
+      <button class="dcp-clear" ${!current ? 'disabled' : ''}>✕ Clear</button>
+    `;
+
+    // Position near clicked day header
+    document.body.appendChild(picker);
+    const rect = e.currentTarget.getBoundingClientRect();
+    let top = rect.bottom + 6;
+    let left = rect.left;
+    // Keep on screen
+    if (left + 160 > window.innerWidth) left = window.innerWidth - 168;
+    if (top + 200 > window.innerHeight) top = rect.top - picker.offsetHeight - 6;
+    picker.style.top = `${top}px`;
+    picker.style.left = `${left}px`;
+
+    function applyColor(color) {
+      setDayColor(date, color);
+      const col = document.querySelector(`.day-column[data-date="${date}"]`);
+      if (col) {
+        if (color) {
+          col.style.setProperty('--day-color', color);
+          col.classList.add('has-day-color');
+        } else {
+          col.style.removeProperty('--day-color');
+          col.classList.remove('has-day-color');
+        }
+      }
+      picker.remove();
+    }
+
+    picker.querySelectorAll('.dcp-swatch').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); applyColor(btn.dataset.color); });
+    });
+    picker.querySelector('.dcp-clear').addEventListener('click', e => { e.stopPropagation(); applyColor(null); });
+
+    function outside(ev) {
+      if (!picker.contains(ev.target)) { picker.remove(); document.removeEventListener('click', outside, true); }
+    }
+    setTimeout(() => document.addEventListener('click', outside, true), 0);
+  }
+
   // ---- Timeline: Infinite Scroll ----------------------------
 
   function buildDayColumnHTML(date) {
@@ -387,12 +486,16 @@ const App = (() => {
           `<span class="day-deadline-tag ${isPast(date) ? 'overdue' : ''}" title="${escapeHtml(t.title)}">📅 ${escapeHtml(t.title.length > 18 ? t.title.slice(0, 16) + '…' : t.title)}</span>`
         ).join('')}</div>` : '';
 
-    return `<div class="day-column ${isToday(date) ? 'is-today' : ''} ${isPast(date) ? 'is-past' : ''} ${hasDeadline ? 'has-deadline' : ''}"
-         data-date="${date}"
+    const dayColor = getDayColor(date);
+    const dayColorStyle = dayColor ? ` style="--day-color:${dayColor}"` : '';
+    const dayColorClass = dayColor ? ' has-day-color' : '';
+
+    return `<div class="day-column ${isToday(date) ? 'is-today' : ''} ${isPast(date) ? 'is-past' : ''} ${hasDeadline ? 'has-deadline' : ''}${dayColorClass}"
+         data-date="${date}"${dayColorStyle}
          ondragover="event.preventDefault(); event.dataTransfer.dropEffect='move'; this.classList.add('drag-over')"
          ondragleave="if(!this.contains(event.relatedTarget)) this.classList.remove('drag-over')"
          ondrop="App.handleDrop(event, '${date}')">
-      <div class="day-header">
+      <div class="day-header" onclick="App.openDayColorPicker(event,'${date}')">
         <div class="day-header-top">
           <span class="day-name">${dayName(date)}</span>
           <span class="day-count">${doneCount}/${tasks.length}</span>
@@ -624,6 +727,16 @@ const App = (() => {
       // Update today / past classes
       col.classList.toggle('is-today', isToday(date));
       col.classList.toggle('is-past', isPast(date));
+
+      // Apply / remove day color
+      const dayColor = getDayColor(date);
+      if (dayColor) {
+        col.style.setProperty('--day-color', dayColor);
+        col.classList.add('has-day-color');
+      } else {
+        col.style.removeProperty('--day-color');
+        col.classList.remove('has-day-color');
+      }
     });
 
     renderBacklog();
@@ -1001,7 +1114,7 @@ const App = (() => {
     handleDragStart, handleDragEnd, handleDrop, handleBacklogDrop,
     switchSidebarTab,
     exportTasks, importTasks, showToast,
-    editWeekTitle,
+    editWeekTitle, openDayColorPicker,
   };
 })();
 

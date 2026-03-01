@@ -837,6 +837,85 @@ kbd {
   font-family: inherit;
 }
 
+/* ---- Day colour tint -------------------------------------- */
+.day-column.has-day-color {
+  border-color: var(--day-color) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--day-color) 35%, transparent);
+  background: color-mix(in srgb, var(--day-color) 8%, var(--bg-card));
+}
+
+.day-column.has-day-color .day-name {
+  color: var(--day-color);
+}
+
+/* ---- Day colour picker ------------------------------------ */
+.day-color-picker {
+  position: fixed;
+  z-index: 3000;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 8px;
+  box-shadow: 0 8px 32px #000a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+  max-width: 220px;
+}
+
+.dcp-swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dcp-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  text-align: left;
+  width: 100%;
+}
+
+.dcp-swatch:hover { background: var(--bg-hover); }
+.dcp-swatch.active { border-color: var(--accent); background: var(--accent-glow); }
+
+.dcp-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dcp-label {
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dcp-clear {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.dcp-clear:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.dcp-clear:disabled { opacity: 0.35; cursor: default; }
+
 /* ---- Responsive ------------------------------------------- */
 @media (max-width: 900px) {
   :root {
