@@ -245,6 +245,15 @@ html, body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  margin-left: 6px;
+}
+
+.week-block:first-child {
+  border-left: none;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .week-header {
@@ -839,9 +848,11 @@ kbd {
 
 /* ---- Day colour tint -------------------------------------- */
 .day-column.has-day-color {
-  border-color: var(--day-color) !important;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--day-color) 35%, transparent);
-  background: color-mix(in srgb, var(--day-color) 8%, var(--bg-card));
+  border-left: 3px solid var(--day-color) !important;
+  border-top-color: var(--border) !important;
+  border-right-color: var(--border) !important;
+  border-bottom-color: var(--border) !important;
+  background: color-mix(in srgb, var(--day-color) 4%, var(--bg-card));
 }
 
 .day-column.has-day-color .day-name {
