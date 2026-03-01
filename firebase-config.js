@@ -84,6 +84,10 @@ const authReady = new Promise((resolve) => {
       USER_ID = user.uid;
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('app-container').style.display = '';
+      // Scroll to today now that the container is visible
+      requestAnimationFrame(() => {
+        if (typeof App !== 'undefined') App.scrollToToday(false);
+      });
       console.log('Signed in as:', user.email, 'UID:', USER_ID);
       resolve(user);
     } else {

@@ -46,8 +46,46 @@ const App = (() => {
     return toLocalDateStr(d);
   }
 
-  function isSunday(dateStr) {
-    return new Date(dateStr + 'T12:00:00').getDay() === 0;
+  function isMonday(dateStr) {
+    return new Date(dateStr + 'T12:00:00').getDay() === 1;
+  }
+
+  // Returns the Monday of the week containing dateStr
+  function getMonday(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    const day = d.getDay(); // 0=Sun, 1=Mon, ...
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return toLocalDateStr(d);
+  }
+
+  // ---- Week name storage (localStorage) --------------------
+  function getWeekName(mondayDate) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('weekNames') || '{}');
+      return stored[mondayDate] || null;
+    } catch { return null; }
+  }
+
+  function setWeekName(mondayDate, name) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('weekNames') || '{}');
+      if (name) stored[mondayDate] = name;
+      else delete stored[mondayDate];
+      localStorage.setItem('weekNames', JSON.stringify(stored));
+    } catch {}
+  }
+
+  function isoWeekNumber(mondayDate) {
+    // ISO 8601: week containing the Thursday; weeks start Monday
+    const d = new Date(mondayDate + 'T12:00:00');
+    d.setDate(d.getDate() + 3); // Thursday of this week
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  }
+
+  function defaultWeekLabel(mondayDate) {
+    return `Week ${isoWeekNumber(mondayDate)}`;
   }
 
   function getMonthOf(dateStr) {
@@ -349,17 +387,7 @@ const App = (() => {
           `<span class="day-deadline-tag ${isPast(date) ? 'overdue' : ''}" title="${escapeHtml(t.title)}">📅 ${escapeHtml(t.title.length > 18 ? t.title.slice(0, 16) + '…' : t.title)}</span>`
         ).join('')}</div>` : '';
 
-    // Month separator: show if this is the 1st of a month OR the first day in timeline
-    const dayNum = new Date(date + 'T12:00:00').getDate();
-    const isFirstOfMonth = dayNum === 1;
-    const monthLabel = isFirstOfMonth
-      ? `<div class="month-separator"><span>${formatMonthYear(date)}</span></div>` : '';
-
-    // Week separator: thin line before Sunday
-    const weekSep = isSunday(date) && !isFirstOfMonth
-      ? `<div class="week-separator"></div>` : '';
-
-    return `${monthLabel}${weekSep}<div class="day-column ${isToday(date) ? 'is-today' : ''} ${isPast(date) ? 'is-past' : ''} ${hasDeadline ? 'has-deadline' : ''}"
+    return `<div class="day-column ${isToday(date) ? 'is-today' : ''} ${isPast(date) ? 'is-past' : ''} ${hasDeadline ? 'has-deadline' : ''}"
          data-date="${date}"
          ondragover="event.preventDefault(); event.dataTransfer.dropEffect='move'; this.classList.add('drag-over')"
          ondragleave="if(!this.contains(event.relatedTarget)) this.classList.remove('drag-over')"
@@ -383,17 +411,87 @@ const App = (() => {
     </div>`;
   }
 
+  // ---- Week block builder ---------------------------------
+  function buildWeekBlockHTML(mondayDate) {
+    const weekName = getWeekName(mondayDate);
+    const label = weekName || defaultWeekLabel(mondayDate);
+
+    let daysHtml = '';
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(mondayDate, i);
+      // Month separator before the 1st of each month
+      if (new Date(d + 'T12:00:00').getDate() === 1) {
+        daysHtml += `<div class="month-separator"><span>${formatMonthYear(d)}</span></div>`;
+      }
+      daysHtml += buildDayColumnHTML(d);
+    }
+
+    return `<div class="week-block" data-week="${mondayDate}">
+      <div class="week-header">
+        <span class="week-title" onclick="App.editWeekTitle('${mondayDate}')">${escapeHtml(label)}</span>
+      </div>
+      <div class="week-days">${daysHtml}</div>
+    </div>`;
+  }
+
+  // ---- Week title inline editor ----------------------------
+  function editWeekTitle(mondayDate) {
+    const weekBlock = document.querySelector(`.week-block[data-week="${mondayDate}"]`);
+    if (!weekBlock) return;
+    const titleEl = weekBlock.querySelector('.week-title');
+    if (!titleEl || titleEl.querySelector('input')) return;
+
+    const currentName = getWeekName(mondayDate);
+    const defaultLabel = defaultWeekLabel(mondayDate);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'week-title-input';
+    input.value = currentName || '';
+    input.placeholder = defaultLabel;
+    input.maxLength = 60;
+
+    titleEl.innerHTML = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    let committed = false;
+
+    function commit() {
+      if (committed) return;
+      committed = true;
+      const newName = input.value.trim();
+      setWeekName(mondayDate, newName);
+      titleEl.textContent = newName || defaultLabel;
+    }
+
+    function cancel() {
+      if (committed) return;
+      committed = true;
+      titleEl.textContent = currentName || defaultLabel;
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener('blur', commit);
+  }
+
   function initTimeline() {
     const timeline = document.getElementById('timeline');
     const todayStr = today();
-    timelineStartDate = addDays(todayStr, -INITIAL_DAYS_BEFORE);
-    timelineEndDate = addDays(todayStr, INITIAL_DAYS_AFTER);
+    // Align start to the Monday of the week that is INITIAL_DAYS_BEFORE days before today
+    timelineStartDate = getMonday(addDays(todayStr, -INITIAL_DAYS_BEFORE));
+    // Align end to the Sunday of the week that is INITIAL_DAYS_AFTER days after today
+    timelineEndDate = addDays(getMonday(addDays(todayStr, INITIAL_DAYS_AFTER)), 6);
 
     let html = '';
     let d = timelineStartDate;
     while (d <= timelineEndDate) {
-      html += buildDayColumnHTML(d);
-      d = addDays(d, 1);
+      html += buildWeekBlockHTML(d);
+      d = addDays(d, 7);
     }
     timeline.innerHTML = html;
 
@@ -453,12 +551,14 @@ const App = (() => {
     const oldScrollWidth = timeline.scrollWidth;
     const oldScrollLeft = timeline.scrollLeft;
 
+    const weeks = Math.max(1, Math.ceil(count / 7));
+    // timelineStartDate is always a Monday; prepend weeks BEFORE it
+    const firstNewMonday = addDays(timelineStartDate, -weeks * 7);
     let html = '';
-    for (let i = count; i >= 1; i--) {
-      const d = addDays(timelineStartDate, -i);
-      html += buildDayColumnHTML(d);
+    for (let i = 0; i < weeks; i++) {
+      html += buildWeekBlockHTML(addDays(firstNewMonday, i * 7));
     }
-    timelineStartDate = addDays(timelineStartDate, -count);
+    timelineStartDate = firstNewMonday;
     timeline.insertAdjacentHTML('afterbegin', html);
 
     // Maintain scroll position
@@ -468,12 +568,14 @@ const App = (() => {
 
   function appendDays(count) {
     const timeline = document.getElementById('timeline');
+    const weeks = Math.max(1, Math.ceil(count / 7));
+    // timelineEndDate is always a Sunday; next Monday starts new week
+    const firstNewMonday = addDays(timelineEndDate, 1);
     let html = '';
-    for (let i = 1; i <= count; i++) {
-      const d = addDays(timelineEndDate, i);
-      html += buildDayColumnHTML(d);
+    for (let i = 0; i < weeks; i++) {
+      html += buildWeekBlockHTML(addDays(firstNewMonday, i * 7));
     }
-    timelineEndDate = addDays(timelineEndDate, count);
+    timelineEndDate = addDays(timelineEndDate, weeks * 7);
     timeline.insertAdjacentHTML('beforeend', html);
   }
 
@@ -899,6 +1001,7 @@ const App = (() => {
     handleDragStart, handleDragEnd, handleDrop, handleBacklogDrop,
     switchSidebarTab,
     exportTasks, importTasks, showToast,
+    editWeekTitle,
   };
 })();
 
