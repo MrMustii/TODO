@@ -59,38 +59,22 @@ const App = (() => {
     return toLocalDateStr(d);
   }
 
-  // ---- Week name storage (localStorage) --------------------
+  // ---- Week name storage (delegates to Storage / Firestore) --
   function getWeekName(mondayDate) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('weekNames') || '{}');
-      return stored[mondayDate] || null;
-    } catch { return null; }
+    return Storage.getWeekName(mondayDate);
   }
 
   function setWeekName(mondayDate, name) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('weekNames') || '{}');
-      if (name) stored[mondayDate] = name;
-      else delete stored[mondayDate];
-      localStorage.setItem('weekNames', JSON.stringify(stored));
-    } catch {}
+    Storage.setWeekName(mondayDate, name);
   }
 
-  // ---- Day colour storage ----------------------------------
+  // ---- Day colour storage (delegates to Storage / Firestore) --
   function getDayColor(date) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('dayColors') || '{}');
-      return stored[date] || null;
-    } catch { return null; }
+    return Storage.getDayColor(date);
   }
 
   function setDayColor(date, color) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('dayColors') || '{}');
-      if (color) stored[date] = color;
-      else delete stored[date];
-      localStorage.setItem('dayColors', JSON.stringify(stored));
-    } catch {}
+    Storage.setDayColor(date, color);
   }
 
   function isoWeekNumber(mondayDate) {

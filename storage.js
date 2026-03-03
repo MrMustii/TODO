@@ -10,9 +10,25 @@ const Storage = (() => {
   let isInitialized = false;
   let onChangeCallbacks = [];
 
+  // Local cache of color metadata (updated via real-time listener)
+  let weekNamesCache = {};
+  let dayColorsCache = {};
+  let colorDataInitialized = false;
+
+  function loadColorCacheFromLocalStorage() {
+    try { weekNamesCache = JSON.parse(localStorage.getItem('weekNames') || '{}'); } catch { weekNamesCache = {}; }
+    try { dayColorsCache = JSON.parse(localStorage.getItem('dayColors') || '{}'); } catch { dayColorsCache = {}; }
+  }
+  loadColorCacheFromLocalStorage();
+
   // Get Firestore collection reference for this user
   function getTasksCollection() {
     return db.collection('users').doc(USER_ID).collection('tasks');
+  }
+
+  // Get Firestore document reference for color metadata
+  function getColorDataRef() {
+    return db.collection('users').doc(USER_ID).collection('metadata').doc('colorData');
   }
 
   // Initialize real-time listener
@@ -84,6 +100,52 @@ const Storage = (() => {
     return tasksCache.filter(t => t.id !== id);
   }
 
+  // ---- Color metadata (weekNames + dayColors) ---------------
+
+  function initColorDataSync() {
+    if (colorDataInitialized) return;
+    colorDataInitialized = true;
+
+    getColorDataRef().onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        weekNamesCache = data.weekNames || {};
+        dayColorsCache = data.dayColors || {};
+        // Keep localStorage in sync for fast offline reads
+        localStorage.setItem('weekNames', JSON.stringify(weekNamesCache));
+        localStorage.setItem('dayColors', JSON.stringify(dayColorsCache));
+      }
+    }, (error) => {
+      console.warn('Color data sync error:', error);
+    });
+  }
+
+  function getWeekName(mondayDate) {
+    return weekNamesCache[mondayDate] || null;
+  }
+
+  function setWeekName(mondayDate, name) {
+    if (name) weekNamesCache[mondayDate] = name;
+    else delete weekNamesCache[mondayDate];
+    localStorage.setItem('weekNames', JSON.stringify(weekNamesCache));
+    // Persist to Firestore in background
+    getColorDataRef().set({ weekNames: weekNamesCache, dayColors: dayColorsCache }, { merge: false })
+      .catch(e => console.warn('Failed to save weekName:', e));
+  }
+
+  function getDayColor(date) {
+    return dayColorsCache[date] || null;
+  }
+
+  function setDayColor(date, color) {
+    if (color) dayColorsCache[date] = color;
+    else delete dayColorsCache[date];
+    localStorage.setItem('dayColors', JSON.stringify(dayColorsCache));
+    // Persist to Firestore in background
+    getColorDataRef().set({ weekNames: weekNamesCache, dayColors: dayColorsCache }, { merge: false })
+      .catch(e => console.warn('Failed to save dayColor:', e));
+  }
+
   // ---- Settings (still local, not synced) -------------------
   function getSettings() {
     try {
@@ -112,6 +174,8 @@ const Storage = (() => {
     return JSON.stringify({
       tasks: getAllTasks(),
       settings: getSettings(),
+      weekNames: weekNamesCache,
+      dayColors: dayColorsCache,
       exportedAt: new Date().toISOString(),
     }, null, 2);
   }
@@ -120,6 +184,17 @@ const Storage = (() => {
     const data = JSON.parse(jsonString);
     if (data.tasks) await saveTasks(data.tasks);
     if (data.settings) saveSettings(data.settings);
+    if (data.weekNames) {
+      weekNamesCache = data.weekNames;
+      localStorage.setItem('weekNames', JSON.stringify(weekNamesCache));
+    }
+    if (data.dayColors) {
+      dayColorsCache = data.dayColors;
+      localStorage.setItem('dayColors', JSON.stringify(dayColorsCache));
+    }
+    if (data.weekNames || data.dayColors) {
+      await getColorDataRef().set({ weekNames: weekNamesCache, dayColors: dayColorsCache }, { merge: false });
+    }
     return data;
   }
 
@@ -139,6 +214,7 @@ const Storage = (() => {
 
   return {
     initRealTimeSync,
+    initColorDataSync,
     onChange,
     getAllTasks,
     saveTasks,
@@ -147,6 +223,10 @@ const Storage = (() => {
     deleteTask,
     getSettings,
     saveSettings,
+    getWeekName,
+    setWeekName,
+    getDayColor,
+    setDayColor,
     exportData,
     importData,
     isOnline,
@@ -157,4 +237,5 @@ const Storage = (() => {
 // Initialize sync after auth is ready
 authReady.then(() => {
   Storage.initRealTimeSync();
+  Storage.initColorDataSync();
 });
