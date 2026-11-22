@@ -25,11 +25,12 @@
   </div>
 
   <!-- ===== App Container (hidden until logged in) ===== -->
-  <div id="app-container" style="display: none;">
+  <div id="app-container" class="sidebar-collapsed" style="display: none;">
 
   <!-- ===== Top Bar ===== -->
   <header class="top-bar">
     <div class="top-bar-left">
+      <button class="icon-btn" id="menu-btn" onclick="App.toggleSidebar()" title="Menu">☰</button>
       <h1 class="logo">☑ TODO</h1>
       <div class="search-box">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -38,13 +39,19 @@
     </div>
     <div class="top-bar-right">
       <button class="icon-btn" id="today-btn" onclick="App.scrollToToday()" title="Jump to today">Today</button>
-      <button class="icon-btn" onclick="App.importTasks()" title="Import backup">
+      <button class="icon-btn" id="import-btn" onclick="App.importTasks()" title="Import backup">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="icon-btn" onclick="App.exportTasks()" title="Export backup">
+      <button class="icon-btn" id="export-btn" onclick="App.exportTasks()" title="Export backup">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0l4-4m-4 4l-4-4M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
       </button>
-      <button class="icon-btn" onclick="Auth.signOut()" title="Sign out">
+      <button class="icon-btn" id="archive-btn" onclick="App.openArchivePanel()" title="Archived tasks">
+        📦
+      </button>
+      <button class="icon-btn goals-pill" id="goals-pill-btn" onclick="App.openSidebarToTab('goals')" title="Goals">
+        🎯 <span id="goals-pill-text">0 goals</span>
+      </button>
+      <button class="icon-btn" id="signout-btn" onclick="Auth.signOut()" title="Sign out">
         🚪
       </button>
     </div>
@@ -55,6 +62,9 @@
     <!-- ===== Infinite Timeline ===== -->
     <div id="timeline" class="timeline"></div>
 
+    <!-- Dimmed backdrop behind the open drawer; click to close -->
+    <div class="sidebar-backdrop" onclick="App.toggleSidebar()"></div>
+
     <!-- ===== Sidebar: Deadlines / Backlog ===== -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-tabs">
@@ -64,13 +74,31 @@
         <button class="sidebar-tab" data-tab="backlog" onclick="App.switchSidebarTab('backlog')">
           📋 <span>Backlog</span> <span id="tab-backlog-count" class="tab-badge">0</span>
         </button>
+        <button class="sidebar-tab" data-tab="goals" onclick="App.switchSidebarTab('goals')">
+          🎯 <span>Goals</span> <span id="tab-goals-count" class="tab-badge">0</span>
+        </button>
       </div>
 
       <div id="deadlines-panel" class="sidebar-tab-content active">
         <div id="deadlines-tasks" class="deadlines-tasks"></div>
       </div>
 
+      <div id="sidebar-goals-panel" class="sidebar-tab-content">
+        <div class="goals-drawer-toolbar">
+          <button class="btn btn-secondary" onclick="App.openGoalImportModal()">📋 Paste Plan</button>
+          <button class="btn btn-primary" onclick="App.openGoalModal(null)">+ New Goal</button>
+        </div>
+        <div class="goal-section-title">Habits</div>
+        <div id="sidebar-habits-list" class="sidebar-habits-list"></div>
+        <div class="goal-section-title">Goals</div>
+        <div id="goals-grid" class="goals-grid"></div>
+      </div>
+
       <div id="backlog-panel" class="sidebar-tab-content">
+        <div class="backlog-toolbar">
+          <button class="btn btn-secondary backlog-sort-btn" onclick="App.sortBacklogByImportance()">⭐ Sort by Importance</button>
+          <button class="btn btn-secondary backlog-sort-btn" onclick="App.sortBacklogByUrgency()">⚡ Sort by Urgency</button>
+        </div>
         <div id="backlog-tasks" class="backlog-tasks"></div>
         <div class="quick-add backlog-quick-add">
           <button class="add-task-btn backlog-add" onclick="App.startBacklogQuickAdd(this)" title="Add to backlog">
@@ -81,6 +109,9 @@
       </div>
     </div>
   </main>
+
+  <!-- Drop target shown only while a task is being dragged (CSS: body.task-dragging) -->
+  <div id="backlog-drop-strip" class="backlog-drop-strip"><span class="backlog-drop-label">Drop here → Backlog</span></div>
 
   <!-- ===== Task Modal ===== -->
   <div id="task-modal" class="modal-overlay">
@@ -94,23 +125,43 @@
           <label for="task-title-input">Title *</label>
           <input type="text" id="task-title-input" required placeholder="What needs to be done?" maxlength="200" />
         </div>
-        <div class="form-row">
+        <div class="form-group">
+          <label><input type="checkbox" id="task-is-habit" onchange="App.toggleHabitFieldsVisibility()" /> 🔁 Make this a recurring habit</label>
+        </div>
+        <div class="form-row" id="habit-target-row" style="display:none">
           <div class="form-group">
+            <label for="habit-target-count">Target count (optional)</label>
+            <input type="number" id="habit-target-count" min="1" placeholder="e.g. 3" />
+          </div>
+          <div class="form-group">
+            <label for="habit-target-period">Per</label>
+            <select id="habit-target-period">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" id="task-dates-row">
+          <div class="form-group" id="task-assigned-group">
             <label for="task-assigned-date">Assigned Day</label>
             <input type="date" id="task-assigned-date" />
           </div>
-          <div class="form-group">
+          <div class="form-group" id="task-deadline-group">
             <label for="task-deadline">📅 Due Date</label>
             <input type="date" id="task-deadline" />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
+        <div class="form-row" id="task-category-row">
+          <div class="form-group" id="task-category-group">
             <label for="task-category-input">Category</label>
-            <input type="text" id="task-category-input" placeholder="e.g. Work, Personal, Study…" maxlength="50" list="category-datalist" autocomplete="off" />
+            <div class="category-input-wrap">
+              <button type="button" id="task-category-dot" class="category-color-dot" onclick="App.toggleCategorySwatches()" title="Category colour" aria-label="Category colour"></button>
+              <input type="text" id="task-category-input" placeholder="e.g. Work, Personal, Study…" maxlength="50" list="category-datalist" autocomplete="off" />
+            </div>
+            <div id="task-category-swatches" class="category-swatches" hidden></div>
             <datalist id="category-datalist"></datalist>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="task-recurrence-group">
             <label for="task-recurrence">🔄 Repeat</label>
             <select id="task-recurrence">
               <option value="">No repeat</option>
@@ -121,9 +172,105 @@
             </select>
           </div>
         </div>
+        <div class="form-row" id="task-priority-row">
+          <div class="form-group">
+            <label for="task-importance">⭐ Importance</label>
+            <select id="task-importance">
+              <option value="">—</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-urgency">⚡ Urgency</label>
+            <select id="task-urgency">
+              <option value="">—</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
         <div class="form-actions">
+          <button type="button" id="task-delete-btn" class="btn btn-danger task-delete-modal-btn" onclick="App.deleteCurrentTask()">🗑️ Delete</button>
+          <button type="button" class="btn btn-archive" onclick="App.archiveCurrentTask()">📦 Archive</button>
           <button type="button" class="btn btn-secondary" onclick="App.closeModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== Archive Modal ===== -->
+  <div id="archive-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Archived Tasks</h2>
+        <button class="modal-close" onclick="App.closeArchivePanel()">×</button>
+      </div>
+      <div class="archive-section">
+        <div class="archive-section-title">Archive by tag</div>
+        <div id="archive-tags-active" class="archive-tag-list"></div>
+      </div>
+      <div class="archive-section">
+        <div class="archive-section-title">Unarchive by tag</div>
+        <div id="archive-tags-archived" class="archive-tag-list"></div>
+      </div>
+      <div class="archive-section-title">Archived tasks</div>
+      <input type="text" id="archive-search-input" class="archive-search-input" placeholder="Search archived tasks…" autocomplete="off" />
+      <div id="archive-tasks" class="archive-tasks"></div>
+    </div>
+  </div>
+
+  <!-- ===== Goals Page (separate from the drawer — full subgoal/task editing) ===== -->
+  <div id="goals-page" class="goals-page-overlay">
+    <header class="goals-page-header">
+      <button class="icon-btn" onclick="App.closeGoalsPage()" title="Close">✕ Close</button>
+    </header>
+    <div id="goal-detail-content" class="goal-detail-content"></div>
+  </div>
+
+  <!-- ===== Goal CRUD Modal ===== -->
+  <div id="goal-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="goal-modal-title">New Goal</h2>
+        <button class="modal-close" onclick="App.closeGoalModal()">×</button>
+      </div>
+      <form id="goal-form" class="task-form">
+        <div class="form-group">
+          <label for="goal-title-input">Title *</label>
+          <input type="text" id="goal-title-input" required maxlength="200" />
+        </div>
+        <div class="form-group">
+          <label for="goal-finish-condition">What does done look like? (optional)</label>
+          <textarea id="goal-finish-condition" maxlength="500" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="goal-notes">Links / notes (optional)</label>
+          <textarea id="goal-notes" maxlength="500" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-archive goal-delete-btn" onclick="App.deleteCurrentGoalFromModal()" style="display:none">🗑️ Delete</button>
+          <button type="button" class="btn btn-secondary" onclick="App.closeGoalModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== Goal Paste-Import Modal ===== -->
+  <div id="goal-import-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Paste a Plan</h2>
+        <button class="modal-close" onclick="App.closeGoalImportModal()">×</button>
+      </div>
+      <form id="goal-import-form" class="task-form">
+        <p class="goal-import-hint"># Goal title, then "&gt; finish condition", then "- Subgoal" / "  - Nested subgoal" / "* Task @2026-12-01". <strong>@date</strong> = assigned day (shows on the calendar that day). Goal tasks don't use due dates, so a <strong>!date</strong> is ignored — goal tasks stay on the goal page and never appear in the Deadlines tab or the Backlog.</p>
+        <textarea id="goal-import-textarea" rows="14" placeholder="# Learn to Run a 10K&#10;&gt; Done when I finish an official 10K race&#10;- Base fitness&#10;  - Run 3x per week&#10;    * Buy running shoes @2026-12-01"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="App.closeGoalImportModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Import</button>
         </div>
       </form>
     </div>
@@ -133,7 +280,7 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- ===== Keyboard Shortcut Hint ===== -->
-  <footer class="shortcut-bar">
+  <footer class="shortcut-bar" id="app-footer">
     <span><kbd>N</kbd> New task</span>
     <span><kbd>Esc</kbd> Close modal</span>
     <span>Scroll to navigate · Drag tasks between days · <kbd>#tag</kbd> in quick-add</span>
@@ -141,11 +288,14 @@
 
   </div><!-- End app-container -->
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  
+  <!-- Firebase SDK 10.8.0 (bundled locally so the app starts without a CDN) -->
+  <script src="vendor/firebase-app-compat.js"></script>
+  <script src="vendor/firebase-firestore-compat.js"></script>
+  <script src="vendor/firebase-auth-compat.js"></script>
+
+  <!-- Drag-and-drop (mouse + touch) — SortableJS 1.15.7, bundled -->
+  <script src="vendor/Sortable.min.js"></script>
+
   <!-- App Scripts -->
   <script src="firebase-config.js"></script>
   <script src="storage.js"></script>

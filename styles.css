@@ -25,11 +25,12 @@
   --radius-sm:   5px;
   --shadow:      0 2px 8px #0005;
 
-  --sidebar-width: 300px;
   --topbar-height: 56px;
   --footer-height: 32px;
   --day-min-width: 180px;
 }
+
+/* Sidebar drawer is closed by default */
 
 html, body {
   height: 100%;
@@ -129,7 +130,10 @@ html, body {
   position: relative;
 }
 
-.top-bar-left, .top-bar-right { display: flex; align-items: center; gap: 12px; }
+.top-bar-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+/* Never allowed to go fully off-screen even if every button doesn't fit —
+   scrollable as a last resort instead of silently unreachable. */
+.top-bar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; max-width: 60vw; overflow-x: auto; }
 
 .logo {
   font-size: 18px;
@@ -143,6 +147,8 @@ html, body {
   position: relative;
   display: flex;
   align-items: center;
+  flex-shrink: 1;
+  min-width: 60px;
 }
 
 .search-icon {
@@ -159,6 +165,7 @@ html, body {
   color: var(--text);
   padding: 6px 14px 6px 34px;
   width: 220px;
+  min-width: 0;
   font-size: 13px;
   outline: none;
   transition: border-color .2s;
@@ -181,6 +188,8 @@ html, body {
 }
 
 .icon-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-glow); }
+
+.goals-pill { white-space: nowrap; }
 
 #today-btn {
   font-weight: 600;
@@ -245,6 +254,10 @@ html, body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  /* Height chain timeline -> week -> days -> column -> .day-tasks: every flex
+     link needs min-height:0 or a long day grows past the viewport instead
+     of scrolling inside .day-tasks. */
+  min-height: 0;
   border-left: 2px solid var(--border);
   padding-left: 10px;
   margin-left: 6px;
@@ -303,6 +316,7 @@ html, body {
   flex-direction: row;
   gap: 2px;
   flex: 1;
+  min-height: 0;
   align-items: stretch;
 }
 
@@ -310,13 +324,14 @@ html, body {
 .day-column {
   min-width: var(--day-min-width);
   max-width: 240px;
-  width: calc((100vw - var(--sidebar-width) - 60px) / 7);
+  width: calc((100vw - 60px) / 7);
   flex-shrink: 0;
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -421,8 +436,10 @@ html, body {
 
 /* ---- Day Tasks -------------------------------------------- */
 .day-tasks {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -442,6 +459,56 @@ html, body {
 .task-card:hover { background: var(--bg-hover); }
 .task-card.dragging { opacity: 0.4; }
 
+/* Long-press on a draggable card must not select text or pop the native
+   callout/context menu (it competes with Sortable's touch long-press).
+   Inputs that live inside cards (quick-add, inline title edit) stay editable. */
+.task-card, .deadline-task-item, .subgoal-card {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.task-card input, .task-card textarea,
+.subgoal-card input, .subgoal-card textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ---- Drag feedback (SortableJS) ---------------------------
+   .sortable-chosen: the long-press completed and the card is "picked up"
+   (also gets a short vibration from onChoose). Once the drag actually
+   starts, the card left in the list also has .dragging (the placeholder)
+   and the copy following the finger is .sortable-fallback (touch). */
+.task-card.sortable-chosen,
+.deadline-task-item.sortable-chosen,
+.subgoal-card.sortable-chosen {
+  position: relative;
+  z-index: 2;
+  transform: scale(1.03);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+/* Placeholder: flat, dimmed, dashed — "it will land here". */
+.task-card.sortable-chosen.dragging,
+.deadline-task-item.sortable-chosen.dragging,
+.subgoal-card.sortable-chosen.dragging {
+  transform: none;
+  box-shadow: none;
+  outline: 2px dashed var(--accent);
+  opacity: 0.35;
+}
+/* Touch ghost under the finger: Sortable moves it with an inline transform
+   on every touchmove, so no transition (or it lags behind the finger), and
+   override Sortable's inline 0.8 opacity so it reads clearly. */
+.sortable-fallback {
+  transition: none !important;
+  opacity: 0.95 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
 .task-card.task-done { opacity: 0.4; }
 .task-card.task-done .task-title { text-decoration: line-through; }
 
@@ -454,6 +521,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .task-check {
@@ -474,12 +542,71 @@ html, body {
 .task-check:hover { border-color: var(--green); }
 .task-check.checked { background: var(--green); color: #fff; border-color: var(--green); }
 
+/* Bigger than the plain done-checkbox it replaces — this is the primary,
+   repeated-many-times-a-day control for the whole habit feature, so it
+   needs a real tap target, not the same small box as a once-per-task click. */
+/* Habit cards: a tap anywhere on the card logs a completion (tapHabitCard),
+   so the whole card reads as a button (pointer + pressed state; the badge
+   stays an accent pill); the small pencil opens the edit modal. .habit-card
+   comes from renderTaskCard; the :has() fallback keys off the pencil button
+   in case the class is absent. The pressed state is skipped while the press
+   is on one of the card's own controls or a nested subtask card. */
+.habit-card { cursor: pointer; }
+.habit-card:active:not(:has(button:active, input:active, .task-add-subtask:active, .task-children:active)) {
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1px var(--accent-glow);
+}
+.habit-card .task-title,
+.task-card:has(> .task-top-row > .habit-edit-btn) > .task-top-row > .task-title { cursor: pointer; }
+.habit-card .task-habit-badge,
+.task-card:has(> .task-top-row > .habit-edit-btn) .task-habit-badge {
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  border-radius: 10px;
+  transition: background .12s, color .12s;
+}
+.habit-card .task-habit-badge:hover,
+.task-card:has(> .task-top-row > .habit-edit-btn) .task-habit-badge:hover { background: var(--accent); color: #fff; }
+.habit-card .task-title:active,
+.habit-card .task-habit-badge:active,
+.task-card:has(> .task-top-row > .habit-edit-btn) > .task-top-row > .task-title:active,
+.task-card:has(> .task-top-row > .habit-edit-btn) .task-habit-badge:active { opacity: 0.7; }
+.habit-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+}
+.habit-edit-btn:hover { color: var(--accent); background: var(--bg-hover); }
+.habit-undo-btn { opacity: 1; color: var(--text-muted); }
+.habit-undo-btn:hover { color: var(--accent); }
+.task-habit-badge { background: var(--accent-glow); color: var(--accent); font-weight: 600; white-space: nowrap; }
+
+/* Gentle nudge, deliberately not red/alarming — a quiet outline instead of
+   a louder fill, not a warning color. Only shown after 2 consecutive fully
+   missed periods; one log at any point reverts to the normal filled badge. */
+.task-habit-badge.habit-check-in { background: transparent; border: 1px solid var(--border-light); color: var(--text-dim); }
+
+/* Read-only echo of a habit log on a given day — not the task's real card,
+   so it shouldn't invite a drag (SortableJS filters it out via its own
+   class, this just makes the cursor match that reality). */
+.habit-completion-marker { cursor: default; border-left: 2px dashed var(--border-light); }
+.habit-completion-marker .task-title { cursor: pointer; }
+
 .task-title {
   flex: 1;
+  min-width: 0;
   font-size: 13px;
   cursor: pointer;
   line-height: 1.3;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .task-title:hover { color: var(--accent); }
@@ -496,7 +623,7 @@ html, body {
   line-height: 1;
 }
 
-.task-card:hover .task-delete { opacity: 1; }
+.task-card:hover > .task-top-row > .task-delete { opacity: 1; }
 .task-delete:hover { color: var(--red); }
 
 /* ---- Task meta -------------------------------------------- */
@@ -508,7 +635,7 @@ html, body {
   padding-left: 24px;
 }
 
-.task-deadline, .task-category, .task-recurrence, .task-late-badge {
+.task-deadline, .task-category, .task-recurrence, .task-late-badge, .task-priority-badge, .task-goal-tag, .task-habit-badge {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 3px;
@@ -519,8 +646,178 @@ html, body {
 .task-category { font-weight: 500; }
 .task-recurrence { background: #00b89420; color: var(--green); }
 .task-late-badge { background: #e1705525; color: var(--red); font-weight: 600; }
+.task-priority-badge { background: #fdcb6e20; color: var(--orange); font-weight: 600; }
+.task-goal-tag { background: var(--accent-glow); color: var(--accent); font-weight: 500; }
+
+/* ---- Nested tasks ------------------------------------------ */
+.task-collapse-toggle {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  width: 14px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.task-collapse-toggle:hover { color: var(--accent); }
+
+.task-children-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+
+.task-children {
+  margin-top: 6px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 10px;
+}
+
+.task-card-nested { background: var(--bg-card); }
+
+.task-add-subtask {
+  margin-top: 6px;
+  padding-left: 12px;
+}
+
+.add-subtask-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 0;
+  opacity: 0;
+  transition: opacity .15s;
+}
+
+.task-card:hover > .task-add-subtask > .add-subtask-btn { opacity: 1; }
+.add-subtask-btn:hover { color: var(--accent); }
+
+/* ---- Archive panel ------------------------------------------ */
+.archive-section { margin-bottom: 14px; }
+
+.archive-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.archive-tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.archive-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+.archive-tag-row button { padding: 4px 10px; font-size: 12px; flex-shrink: 0; }
+
+.archive-search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color .15s;
+}
+
+.archive-group { margin-bottom: 6px; }
+
+.archive-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--bg-raised);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background .15s;
+}
+
+.archive-group-header:hover { background: var(--bg-hover); }
+
+.archive-group-toggle {
+  font-size: 11px;
+  color: var(--text-dim);
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.archive-group-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 1px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.archive-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 6px;
+}
+
+.archive-search-input:focus { border-color: var(--accent); }
+
+.archive-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archived-card { opacity: 0.8; cursor: default; }
+.archived-card .task-title { flex: 1; }
+.archive-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn.archive-restore-btn, .btn.archive-delete-btn { padding: 2px 8px; font-size: 11px; flex-shrink: 0; }
+
+.archive-task-date {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.archive-delete-btn:hover { color: var(--red); border-color: var(--red); }
 
 /* ---- Quick add -------------------------------------------- */
+/* Sits after .day-tasks (outside its scroll area) with flex-shrink:0, so
+   the day's + stays pinned at the bottom of the column however long the list. */
 .quick-add {
   padding: 6px;
   flex-shrink: 0;
@@ -555,16 +852,46 @@ html, body {
   outline: none;
 }
 
-/* ---- Sidebar ---------------------------------------------- */
+/* ---- Sidebar (collapsible drawer, closed by default) -------
+   A true overlay anchored to the left edge — the same side as the
+   hamburger that opens it — so it slides in without resizing/shifting
+   the calendar underneath (it used to push the layout, which both
+   disoriented the toggle's side and made every day column reflow). */
 .sidebar {
-  width: var(--sidebar-width);
-  flex-shrink: 0;
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: var(--footer-height);
+  left: 0;
+  width: 360px;
+  max-width: 88vw;
   background: var(--bg-card);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform: translateX(-100%);
+  transition: transform .2s ease;
+  z-index: 900;
 }
+
+/* Shadow only while open, so it doesn't bleed in from off-screen when closed. */
+#app-container:not(.sidebar-collapsed) .sidebar { transform: translateX(0); box-shadow: 4px 0 24px #0008; }
+
+/* Dimmed backdrop behind the open drawer — click it to close, and it makes
+   the overlay read as "on top of" the calendar rather than part of it. */
+.sidebar-backdrop {
+  position: fixed;
+  inset: var(--topbar-height) 0 0 0;
+  background: #0007;
+  z-index: 890;
+  display: none;
+}
+
+#app-container:not(.sidebar-collapsed) .sidebar-backdrop { display: block; }
+
+/* While a task is being dragged (set in app.js handleTaskDragStart) the
+   backdrop must not swallow drops aimed at the day columns beneath it. */
+body.task-dragging .sidebar-backdrop { pointer-events: none; }
 
 .sidebar-tabs {
   display: flex;
@@ -607,7 +934,7 @@ html, body {
 
 .sidebar-tab-content.active { display: flex; }
 
-.backlog-tasks, .deadlines-tasks {
+.backlog-tasks, .deadlines-tasks, .sidebar-goals-list {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
@@ -616,7 +943,23 @@ html, body {
   gap: 4px;
 }
 
+.goal-sidebar-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+
+.goal-sidebar-card:hover { background: var(--bg-hover); }
+.goal-sidebar-card.goal-fading { opacity: 0.8; }
+.goal-sidebar-card.goal-dormant { opacity: 0.55; }
+.goal-sidebar-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+
 .backlog-quick-add { padding: 8px; }
+
+.backlog-toolbar { padding: 8px 8px; display: flex; gap: 6px; }
+.btn.backlog-sort-btn { flex: 1; padding: 6px 8px; font-size: 11px; }
 
 .backlog-add {
   border-style: dashed;
@@ -682,7 +1025,8 @@ html, body {
   transition: opacity .15s;
 }
 
-.deadline-task-item:hover .deadline-drag-hint { opacity: 1; }
+.deadline-task-item:hover .deadline-drag-hint,
+.task-card:hover .deadline-drag-hint { opacity: 1; }
 
 /* ---- Empty state ------------------------------------------ */
 .empty-state {
@@ -705,7 +1049,7 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
   padding: 16px;
 }
 
@@ -718,6 +1062,8 @@ html, body {
   padding: 24px;
   width: 100%;
   max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
   box-shadow: 0 12px 40px #000a;
   animation: modalIn .2s ease;
 }
@@ -760,7 +1106,8 @@ html, body {
 
 .task-form input[type="text"],
 .task-form input[type="date"],
-.task-form select {
+.task-form select,
+.task-form textarea {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -769,9 +1116,41 @@ html, body {
   font-size: 14px;
   outline: none;
   transition: border-color .15s;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .task-form input:focus, .task-form select:focus { border-color: var(--accent); }
+
+/* Edit modal: category colour dot + swatch row (renderCategoryColorUI) */
+.category-input-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.category-input-wrap input { flex: 1 1 auto; min-width: 0; }
+.category-color-dot {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: var(--dot, transparent);
+  background-clip: padding-box;
+  cursor: pointer;
+}
+.category-color-dot.empty { cursor: default; }
+.category-color-dot:not(.empty):hover { border-color: var(--text-dim); }
+.category-swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.category-swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--swatch);
+  background-clip: padding-box;
+  cursor: pointer;
+}
+.category-swatch:hover { border-color: var(--border-light); }
+.category-swatch.active { box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent); }
 
 .form-actions {
   display: flex;
@@ -794,6 +1173,69 @@ html, body {
 .btn-primary:hover { filter: brightness(1.15); }
 .btn-secondary { background: var(--bg); color: var(--text-dim); border: 1px solid var(--border); }
 .btn-secondary:hover { color: var(--text); border-color: var(--text-dim); }
+.btn-archive { background: var(--bg); color: var(--text-dim); border: 1px solid var(--border); margin-right: auto; }
+.btn-archive:hover { color: var(--accent); border-color: var(--accent); }
+.btn-danger { background: var(--bg); color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.form-actions { flex-wrap: wrap; }
+
+/* ---- Backlog drop strip ------------------------------------
+   Shown only while a task is being dragged (body.task-dragging): a large
+   full-width target pinned to the bottom of the viewport, above the
+   calendar/drawer/goal page (sidebar 900, goal page up to 1001) but below
+   modals (1100). It is a SortableJS list, so the dragged card's placeholder
+   can be inserted inside it: collapse anything that isn't the label so the
+   strip keeps its shape (the touch ghost .sortable-fallback lives elsewhere). */
+.backlog-drop-strip {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-raised) 94%, transparent);
+  border-top: 2px dashed var(--accent);
+  box-shadow: 0 -6px 24px #0008;
+  color: var(--text);
+  overflow: hidden;
+  transition: background .12s, color .12s;
+}
+body.task-dragging .backlog-drop-strip { display: flex; }
+/* While dragging, let the scroll containers' bottom content scroll clear of
+   the strip (goal page, drawer: Deadlines list, Goals/Habits tab, Backlog). */
+body.task-dragging .goal-detail-content,
+body.task-dragging #deadlines-tasks,
+body.task-dragging #sidebar-goals-panel,
+body.task-dragging #backlog-tasks {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+.backlog-drop-strip.drop-hover {
+  background: var(--accent);
+  border-top-style: solid;
+  color: #fff;
+}
+.backlog-drop-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.backlog-drop-strip > :not(.backlog-drop-label):not(.sortable-fallback) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
 /* ---- Toast ------------------------------------------------ */
 .toast-container {
@@ -927,17 +1369,370 @@ kbd {
 .dcp-clear:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
 .dcp-clear:disabled { opacity: 0.35; cursor: default; }
 
+/* ---- Goals (rendered inside the sidebar drawer) -------------- */
+.goals-panel { display: none; flex: 1; overflow-y: auto; padding: 10px; }
+.goals-panel.active { display: block; }
+
+#sidebar-goals-panel { padding: 8px; }
+.goals-drawer-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
+.goals-drawer-toolbar .btn { flex: 1; padding: 6px 8px; font-size: 12px; }
+
+.sidebar-habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.goal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color .15s, opacity .15s;
+}
+
+.goal-card:hover { border-color: var(--accent); }
+.goal-card.goal-fading { opacity: 0.8; }
+.goal-card.goal-dormant { opacity: 0.55; }
+
+.goal-card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+
+.goal-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+  margin: 8px 0 4px;
+}
+
+.goal-progress-fill { height: 100%; background: var(--accent); }
+.goal-progress-label { font-size: 11px; color: var(--text-dim); }
+.goal-last-touched { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+/* ---- Goals page (separate from the drawer) -----------------
+   A right-side panel, not a full takeover — the calendar stays visible
+   to its left so a goal's tasks can still be dragged straight onto a
+   day column while this is open. Full-screen only on narrow/phone
+   viewports (see the 640px media query), where there's no room to
+   show both at once anyway. */
+.goals-page-overlay {
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: 0;
+  right: 0;
+  width: 480px;
+  max-width: 92vw;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px #0008;
+  display: none;
+  flex-direction: column;
+  z-index: 950;
+}
+
+.goals-page-overlay.open { display: flex; animation: goalsPageIn .2s ease; }
+
+@keyframes goalsPageIn { from { transform: translateX(100%); } }
+
+@media (max-width: 640px) {
+  .goals-page-overlay { top: 0; width: 100%; max-width: 100%; border-left: none; z-index: 1001; }
+}
+
+.goals-page-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.goal-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.goal-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.goal-detail-header h2 { font-size: 20px; }
+
+.goal-finish-condition {
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.goal-notes-block {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.goal-notes-block a { color: var(--accent); text-decoration: underline; overflow-wrap: anywhere; }
+.goal-notes-block a:hover { filter: brightness(1.2); }
+
+.subgoal-tree { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Subgoal = section/milestone container: accent rail on the left, a tinted
+   header band with a heading-weight title, flat (no card box/shadow). Tasks
+   inside stay the plain raised .task-card, so the two never look alike. */
+.subgoal-card {
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  box-shadow: none;
+  padding: 0 0 6px;
+}
+
+.subgoal-card > .task-top-row {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-card));
+  border-radius: 0 var(--radius-sm) 0 0;
+  padding: 7px 10px;
+}
+
+.subgoal-card > .task-top-row > .task-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.subgoal-card > .task-top-row > .goal-last-touched {
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nested subgoals: same shape, quieter rail/band so depth reads. */
+.subgoal-children .subgoal-card { border-left-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.subgoal-children .subgoal-card > .task-top-row { background: color-mix(in srgb, var(--accent) 14%, var(--bg-card)); }
+.subgoal-children .subgoal-card > .task-top-row > .task-title { font-size: 13px; }
+
+.subgoal-card.task-done > .task-top-row > .task-title { text-decoration: line-through; opacity: 0.6; }
+.subgoal-card.task-done { border-left-color: var(--border-light); }
+
+.subgoal-children {
+  margin-top: 6px;
+  padding: 0 8px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 10px;
+}
+
+.subgoal-tasks { margin-top: 6px; padding: 0 8px 0 10px; display: flex; flex-direction: column; gap: 4px; min-height: 10px; }
+.subgoal-card > .task-add-subtask { padding-left: 10px; }
+
+/* Empty drop containers collapse except while a drag is in progress
+   (then they're needed as drop targets). */
+body:not(.task-dragging):not(.subgoal-dragging) .task-children:empty,
+body:not(.task-dragging):not(.subgoal-dragging) .subgoal-tasks:empty,
+body:not(.task-dragging):not(.subgoal-dragging) .subgoal-children:empty {
+  min-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-left: 0;
+}
+
+/* Subgoal cards aren't inside .task-card, so the hover-to-reveal rules that
+   gate .task-delete/.add-subtask-btn opacity never apply here — keep them
+   always visible instead (there's no density pressure in this view). */
+.subgoal-card > .task-top-row > .task-delete,
+.subgoal-card > .task-add-subtask > .add-subtask-btn { opacity: 1; }
+
+.subgoal-card.dragging { opacity: 0.4; }
+.subgoal-card.drag-over { background: var(--accent-glow); box-shadow: inset 0 0 0 2px var(--accent-glow); }
+
+.goal-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 16px 0 6px;
+}
+
+.goal-direct-tasks-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 40px;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color .15s, background .15s;
+}
+
+.goal-direct-tasks-zone.drag-over { border-color: var(--accent); background: var(--accent-glow); }
+
+.goal-add-subgoal, .goal-add-task { margin-top: 10px; }
+
+/* Goal-page 📅 schedule button. Confined to its row: no negative margins,
+   never wider than ~45% of the row (the date label ellipsizes first) and the
+   title shrinks instead of the row overflowing. The native date input is
+   invisible and covers the whole button so a tap lands on it. */
+.goal-schedule-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 28px;
+  min-height: 26px;
+  max-width: 45%;
+  margin: 0;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  flex: 0 0 auto;
+  overflow: hidden;
+  cursor: pointer;
+}
+.goal-schedule-btn:hover { background: var(--bg-hover); }
+.goal-schedule-btn.scheduled { color: var(--accent); }
+.goal-schedule-icon { font-size: 13px; line-height: 1; flex-shrink: 0; }
+.goal-schedule-btn:not(.scheduled) .goal-schedule-icon { opacity: .45; filter: grayscale(1); }
+.goal-schedule-date {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goal-schedule-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.goal-import-hint { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+
+#goal-import-textarea {
+  width: 100%;
+  min-height: 200px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.delete-choice-popup { max-width: 360px; }
+.delete-choice-popup p { margin-bottom: 4px; }
+
 /* ---- Responsive ------------------------------------------- */
 @media (max-width: 900px) {
   :root {
-    --sidebar-width: 220px;
     --day-min-width: 150px;
   }
 }
 
 @media (max-width: 640px) {
-  .sidebar { display: none; }
-  .top-bar { padding: 0 10px; }
-  #search-input { width: 140px; }
+  .top-bar { padding: 0 10px; gap: 8px; }
+  .top-bar-left { gap: 8px; }
+  .top-bar-right { gap: 6px; }
+  .search-box { flex: 1; min-width: 0; }
+  #search-input { width: 100%; min-width: 0; }
   :root { --day-min-width: 140px; }
+
+  /* On phone widths the drawer takes the whole screen instead of a
+     320px panel — there's no room to show it alongside the calendar
+     anyway, so it fully replaces the view instead of partially covering it. */
+  .sidebar { width: 100%; max-width: 100%; }
+}
+
+/* ---- Touch devices (no hover) ------------------------------
+   Controls that only appear on :hover are unreachable with a finger —
+   show them at lower emphasis instead. Plain class selectors here, so
+   the desktop direct-child (>) hover rules don't matter and nested
+   cards each show their own controls. Small icon buttons get an
+   invisible ≥40px hit area via ::after so the cards stay visually compact
+   (taps on a pseudo-element count as taps on its button). */
+@media (hover: none) {
+  .task-delete:not(.habit-undo-btn) { opacity: 0.55; }
+  .add-subtask-btn { opacity: 0.6; }
+  .deadline-drag-hint { opacity: 0.6; }
+
+  .task-check,
+  .task-delete,
+  .task-collapse-toggle,
+  .add-subtask-btn {
+    position: relative;
+  }
+  .task-check::after,
+  .task-delete::after,
+  .task-collapse-toggle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+  }
+  .task-delete { min-width: 20px; }
+
+  /* Buttons that sit next to each other get a real 40px box instead of an
+     overlapping ::after hit area (the row grows a little, nothing bleeds). */
+  .goal-schedule-btn,
+  .habit-edit-btn,
+  .habit-undo-btn,
+  .goal-schedule-btn + .task-delete {
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .habit-undo-btn::after,
+  .goal-schedule-btn + .task-delete::after { content: none; }
+  .add-subtask-btn::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    right: -8px;
+    top: 50%;
+    height: 40px;
+    transform: translateY(-50%);
+  }
 }

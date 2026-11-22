@@ -1,0 +1,396 @@
+/* ============================================================
+   Weekly TODO — Android app only
+   Injected by app.js (after styles.css) only when window.AndroidBridge
+   exists; it also adds .is-android to <html>. Every rule is scoped with
+   .is-android so this file can never affect the desktop/web version.
+   ============================================================ */
+
+/* ---- Footer gone: reclaim its height ------------------------ */
+html.is-android { --footer-height: 0px; }
+
+.is-android #app-footer,
+.is-android .shortcut-bar { display: none !important; }
+
+.is-android .timeline { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.is-android .sidebar { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.is-android .toast-container {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: 12px;
+  left: 12px;
+  align-items: center;
+}
+
+/* ---- Top bar: logo · Today · archive · menu (right end) ------
+   .top-bar-left becomes display:contents so the menu button can be
+   ordered after the right-hand group. No horizontal scroller. */
+.is-android .top-bar { padding: 0 6px 0 12px; gap: 6px; }
+.is-android .top-bar-left { display: contents; }
+.is-android .logo {
+  order: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.is-android .top-bar-right {
+  order: 1;
+  max-width: none;
+  overflow: visible;
+  gap: 6px;
+}
+.is-android #menu-btn { order: 2; }
+
+.is-android .search-box,
+.is-android #import-btn,
+.is-android #export-btn,
+.is-android #goals-pill-btn,
+.is-android #signout-btn { display: none !important; }
+
+.is-android .top-bar .icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+.is-android #menu-btn {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+}
+.is-android #today-btn { padding: 0 14px; font-size: 14px; }
+/* Only Today keeps its outline */
+.is-android #archive-btn,
+.is-android #menu-btn { border-color: transparent; }
+
+/* ---- Drawer slides in from the RIGHT (same side as the menu) ---- */
+.is-android .sidebar {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+}
+/* Shadow only while open, so it doesn't bleed in from off-screen when closed. */
+.is-android #app-container:not(.sidebar-collapsed) .sidebar { transform: translateX(0); box-shadow: -4px 0 24px #0008; }
+
+/* ---- Modals fit the screen width ---------------------------- */
+.is-android .modal-overlay { padding: 8px; }
+.is-android .modal-content {
+  width: 100%;
+  max-width: min(480px, calc(100vw - 16px));
+  max-height: calc(100% - 8px);
+  padding: 16px;
+  overflow-x: hidden;
+  min-width: 0;
+}
+.is-android .modal-header { gap: 8px; margin-bottom: 14px; }
+.is-android .modal-header h2 { min-width: 0; overflow-wrap: anywhere; }
+.is-android .modal-close {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -10px -10px 0;
+  flex-shrink: 0;
+}
+
+.is-android .task-form,
+.is-android .form-group { min-width: 0; }
+.is-android .form-row { flex-wrap: wrap; gap: 12px; }
+.is-android .form-row .form-group { flex: 1 1 140px; min-width: 0; }
+.is-android #task-dates-row .form-group { flex-basis: 100%; }
+/* Category + its colour swatches get the full width so swatches lay out in one or two rows */
+.is-android #task-category-row .form-group { flex-basis: 100%; }
+
+.is-android .task-form input[type="text"],
+.is-android .task-form input[type="date"],
+.is-android .task-form input[type="number"],
+.is-android .task-form select,
+.is-android .task-form textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  font-size: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-family: inherit;
+}
+.is-android .task-form input[type="number"]:focus,
+.is-android .task-form textarea:focus { border-color: var(--accent); outline: none; }
+.is-android .task-form label { font-size: 13px; }
+/* "Make this a recurring habit" checkbox row */
+.is-android .task-form label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.is-android .task-form input[type="checkbox"] { width: 22px; height: 22px; flex-shrink: 0; }
+
+.is-android .form-actions { flex-wrap: wrap; gap: 8px; }
+.is-android .form-actions .btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  margin-right: 0;
+}
+/* Task modal: two per row — Delete + Archive first, Cancel + Save last */
+.is-android #task-modal .form-actions .btn { flex: 1 1 40%; }
+.is-android #task-modal .form-actions .task-delete-modal-btn,
+.is-android #task-modal .form-actions .btn-archive { order: 0; }
+.is-android #task-modal .form-actions .btn-secondary,
+.is-android #task-modal .form-actions .btn-primary { order: 1; }
+
+/* Text inputs everywhere: >=16px so the WebView doesn't zoom on focus */
+.is-android input,
+.is-android select,
+.is-android textarea { font-size: 16px; }
+.is-android .quick-add-input,
+.is-android .archive-search-input { min-height: 44px; }
+
+/* ---- Touch targets: real >=44px boxes, laid out side by side so
+   hit areas never overlap (the ::after hit areas from styles.css'
+   hover:none block are switched off for these). ------------------ */
+.is-android .task-check::after,
+.is-android .task-delete::after,
+.is-android .task-collapse-toggle::after,
+.is-android .add-subtask-btn::after { content: none; }
+
+.is-android .task-card { padding: 2px 6px 2px 0; }
+.is-android .task-top-row { min-height: 44px; gap: 2px; }
+.is-android .task-meta { padding-left: 8px; margin-top: 0; padding-bottom: 4px; }
+.is-android .task-children { padding-left: 6px; }
+
+/* Checkbox: 44x44 tap box, the visible square drawn by ::before. */
+.is-android .task-check {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  z-index: 0;
+}
+.is-android .task-check::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--border-light);
+  border-radius: 4px;
+  z-index: -1;
+}
+.is-android .task-check.checked { background: transparent; color: #fff; }
+.is-android .task-check.checked::before { background: var(--green); border-color: var(--green); }
+/* Read-only habit completion marker (span, emoji) — no box needed */
+.is-android .habit-completion-marker .task-check::before { content: none; }
+
+.is-android .task-collapse-toggle,
+.is-android .task-delete,
+.is-android .habit-edit-btn,
+.is-android .goal-schedule-btn,
+.is-android .goal-schedule-btn + .task-delete {
+  min-width: 44px;
+  min-height: 44px;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.is-android .task-collapse-toggle { font-size: 14px; }
+.is-android .task-delete,
+.is-android .habit-edit-btn { font-size: 18px; opacity: 1; }
+.is-android .habit-edit-btn,
+.is-android .habit-undo-btn { color: var(--text-dim); }
+.is-android .goal-schedule-btn { max-width: 50%; }
+
+/* ---- Day columns: narrow (~150px), so the task row is compacted to
+   leave the title >= ~65px even with a collapse toggle + checkbox +
+   subtask count. Checkbox / toggle are 30px wide (still 44px tall), no
+   row gap, and the subtask count sits under the collapse arrow instead of
+   taking its own slot. Goal page / backlog / drawer cards keep 44px. */
+html.is-android { --day-min-width: 150px; }
+.is-android .day-tasks .task-card { padding-right: 2px; }
+.is-android .day-tasks .task-top-row { gap: 0; position: relative; }
+.is-android .day-tasks .task-check { width: 30px; }
+.is-android .day-tasks .task-collapse-toggle {
+  min-width: 30px;
+  width: 30px;
+  padding: 0 0 12px;
+}
+.is-android .day-tasks .task-children-count { font-size: 11px; padding: 1px 4px; }
+.is-android .day-tasks .task-collapse-toggle ~ .task-children-count {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  width: 30px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+  background: none;
+  pointer-events: none;
+}
+/* Read-only habit completion marker: just the emoji, no tap box */
+.is-android .day-tasks .habit-completion-marker .task-check { width: 22px; }
+
+/* Delete lives in the edit modal on Android: hide the x on task cards
+   (not the habit undo, not the subgoal x, not archive delete). */
+.is-android .task-card > .task-top-row > .task-delete:not(.habit-undo-btn) { display: none; }
+
+/* Habit cards have no checkbox: give the tappable title its own inset */
+.is-android .habit-card > .task-top-row,
+.is-android .task-card:has(> .task-top-row > .habit-edit-btn) > .task-top-row { padding-left: 10px; }
+
+/* Habit tappable count badge */
+.is-android .habit-card .task-habit-badge,
+.is-android .task-card:has(> .task-top-row > .habit-edit-btn) .task-habit-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  font-size: 12px;
+}
+
+/* Hover-only controls: always visible */
+.is-android .add-subtask-btn { opacity: 1; }
+.is-android .deadline-drag-hint { opacity: 0.6; }
+
+.is-android .task-add-subtask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+  padding-left: 6px;
+}
+.is-android .add-subtask-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+/* Quieter add-subtask row on task cards (subgoal add buttons untouched) */
+.is-android .task-card .add-subtask-btn { font-size: 12px; color: var(--text-muted); opacity: .7; }
+.is-android .task-card > .task-add-subtask { margin-top: -4px; }
+
+.is-android .add-task-btn { min-height: 44px; font-size: 14px; }
+
+/* Day header: tappable (colour picker) + long-press, no OS callout/selection */
+.is-android .day-header {
+  min-height: 48px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.is-android .week-title { display: inline-flex; align-items: center; min-height: 36px; }
+
+/* Drawer */
+.is-android .sidebar-tab { min-height: 48px; font-size: 14px; }
+.is-android .btn.backlog-sort-btn,
+.is-android .goals-drawer-toolbar .btn { min-height: 44px; font-size: 13px; }
+.is-android .deadline-task-item { min-height: 44px; }
+
+/* Goal page */
+.is-android .goals-page-header { padding: 6px 10px; }
+.is-android .goals-page-header .icon-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  justify-content: center;
+}
+.is-android .goal-detail-content { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.is-android .goal-detail-header h2 { min-width: 0; overflow-wrap: anywhere; }
+.is-android .goal-detail-header .btn { min-height: 44px; flex-shrink: 0; }
+.is-android .subgoal-card > .task-top-row { padding: 0 2px 0 0; }
+.is-android .subgoal-children .goal-last-touched { display: none; }
+
+/* Archive */
+.is-android .archived-card > .task-top-row { flex-wrap: wrap; }
+.is-android .archive-group-header { min-height: 44px; }
+.is-android .archive-tag-row button,
+.is-android .btn.archive-restore-btn,
+.is-android .btn.archive-delete-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+/* Day colour picker */
+.is-android .dcp-swatch,
+.is-android .dcp-clear { min-height: 44px; }
+
+/* ---- Task meta: centre the row so a tall pill (habit badge) doesn't
+   stretch its neighbours into tall boxes. ------------------------- */
+.is-android .task-meta { align-items: center; }
+
+/* Goal tag: one line; a long goal name is cut with an ellipsis (the full
+   name is in its title attribute, see goalTagHtml). */
+.is-android .task-goal-tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  min-width: 0;
+}
+/* On habit cards it sits next to the 44px streak pill: same pill shape,
+   smaller and quieter (secondary). inline-block + line-height rather than
+   inline-flex, so text-overflow: ellipsis applies to the text. */
+.is-android .habit-card .task-goal-tag,
+.is-android .task-card:has(> .task-top-row > .habit-edit-btn) .task-goal-tag {
+  display: inline-block;
+  box-sizing: border-box;
+  min-height: 32px;
+  line-height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-hover);
+  color: var(--text-dim);
+}
+
+/* ---- Edit modal: category colour dot + swatches (44px tap targets,
+   the visible circles drawn by ::before stay 26px / 32px) ---------- */
+.is-android .category-input-wrap { gap: 4px; }
+.is-android .category-color-dot,
+.is-android .category-swatch {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.is-android .category-color-dot::before,
+.is-android .category-swatch::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+.is-android .category-color-dot::before {
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  border: 2px solid var(--border-light);
+  background: var(--dot, transparent);
+  background-clip: padding-box;
+}
+.is-android .category-swatches { gap: 0; margin-top: 2px; }
+.is-android .category-swatch::before { width: 32px; height: 32px; background: var(--swatch); }
+.is-android .category-swatch.active::before { box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent); }

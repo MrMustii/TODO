@@ -1,0 +1,10 @@
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+# Web assets generated from the project root at build time (see app/build.gradle.kts)
+app/build/generated/webAssets/
