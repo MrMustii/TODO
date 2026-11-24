@@ -266,8 +266,8 @@
         <button class="modal-close" onclick="App.closeGoalImportModal()">×</button>
       </div>
       <form id="goal-import-form" class="task-form">
-        <p class="goal-import-hint"># Goal title, then "&gt; finish condition", then "- Subgoal" / "  - Nested subgoal" / "* Task @2026-12-01". <strong>@date</strong> = assigned day (shows on the calendar that day). Goal tasks don't use due dates, so a <strong>!date</strong> is ignored — goal tasks stay on the goal page and never appear in the Deadlines tab or the Backlog.</p>
-        <textarea id="goal-import-textarea" rows="14" placeholder="# Learn to Run a 10K&#10;&gt; Done when I finish an official 10K race&#10;- Base fitness&#10;  - Run 3x per week&#10;    * Buy running shoes @2026-12-01"></textarea>
+        <p class="goal-import-hint"># Goal title, then "&gt; finish condition", then "- Subgoal" / "  - Nested subgoal" / "* Task @2026-12-01". More "&gt; " lines = goal notes (links work). A "* " indented under another "* " = subtask. <strong>🔁</strong> = habit, e.g. "* Run 🔁 3/week" or "🔁 2/day". <strong>@date</strong> = assigned day (shows on the calendar that day). Goal tasks don't use due dates, so a <strong>!date</strong> is ignored — goal tasks stay on the goal page and never appear in the Deadlines tab or the Backlog.</p>
+        <textarea id="goal-import-textarea" rows="14" placeholder="# Learn to Run a 10K&#10;&gt; Done when I finish an official 10K race&#10;&gt; Plan: https://example.com/10k-plan&#10;- Base fitness&#10;  * Run 🔁 3/week&#10;  * Buy running shoes @2026-12-01&#10;    * Try on 3 pairs"></textarea>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="App.closeGoalImportModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">Import</button>

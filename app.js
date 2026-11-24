@@ -3141,8 +3141,12 @@ const App = (() => {
 
     const subgoals = [];
     const tasks = [];
+    const notes = [];
     const stack = [];
+    // Open "* " lines that a deeper "* " line nests under (as a subtask).
+    const taskStack = [];
     let subgoalCounter = 0;
+    let taskCounter = 0;
 
     for (; idx < lines.length; idx++) {
       const line = lines[idx];
@@ -3150,29 +3154,50 @@ const App = (() => {
       const indent = Math.floor(leadingSpaces / 2);
       const trimmed = line.trim();
 
-      if (trimmed.startsWith('- ')) {
+      if (trimmed.startsWith('>')) {
+        // Every "> " line after the finish condition is a line of goal notes.
+        notes.push(trimmed.slice(1).trim());
+      } else if (trimmed.startsWith('- ')) {
         while (stack.length && stack[stack.length - 1].depth >= indent) stack.pop();
         const parentTempId = stack.length ? stack[stack.length - 1].tempId : null;
         const tempId = `sg${subgoalCounter++}`;
         subgoals.push({ tempId, parentTempId, title: trimmed.slice(2).trim() });
         stack.push({ depth: indent, tempId });
+        taskStack.length = 0; // tasks can't own a subgoal
       } else if (trimmed.startsWith('* ')) {
+        while (taskStack.length && taskStack[taskStack.length - 1].depth >= indent) taskStack.pop();
+        const parentTaskTempId = taskStack.length ? taskStack[taskStack.length - 1].tempId : null;
         let owner = null;
-        for (let i = stack.length - 1; i >= 0; i--) {
-          if (stack[i].depth < indent) { owner = stack[i].tempId; break; }
+        if (!parentTaskTempId) {
+          for (let i = stack.length - 1; i >= 0; i--) {
+            if (stack[i].depth < indent) { owner = stack[i].tempId; break; }
+          }
         }
         let body = trimmed.slice(2).trim();
         let assignedDate = null;
         body = body.replace(/@(\d{4}-\d{2}-\d{2})/, (_, d) => { assignedDate = d; return ''; });
         // Goal tasks never have deadlines: a "!date" is stripped and ignored.
         body = body.replace(/!(\d{4}-\d{2}-\d{2})/, '');
-        tasks.push({ title: body.trim(), assignedDate, subgoalTempId: owner });
+        // "🔁" = habit; "🔁 3/week" or "🔁 2/day" also sets its target.
+        let isHabit = false;
+        let habitTarget = null;
+        body = body.replace(/🔁\s*(?:(\d+)\s*\/\s*(day|week)\b)?/i, (_, count, period) => {
+          isHabit = true;
+          if (count && Number(count) > 0) habitTarget = { count: Number(count), period: period.toLowerCase() };
+          return '';
+        });
+        // Habits have no dates; subtasks are plain (title only), like "+ Add subtask".
+        if (isHabit || parentTaskTempId) assignedDate = null;
+        if (parentTaskTempId) { isHabit = false; habitTarget = null; }
+        const tempId = `t${taskCounter++}`;
+        tasks.push({ tempId, title: body.replace(/\s+/g, ' ').trim(), assignedDate, subgoalTempId: owner, parentTaskTempId, isHabit, habitTarget });
+        taskStack.push({ depth: indent, tempId });
       } else {
         console.warn('Skipping unrecognized line in goal import:', line);
       }
     }
 
-    return { goalTitle, finishCondition, subgoals, tasks };
+    return { goalTitle, finishCondition, notes: notes.join('\n'), subgoals, tasks };
   }
 
   function handleGoalImportSubmit(e) {
@@ -3184,7 +3209,7 @@ const App = (() => {
       return;
     }
 
-    const goal = createGoal({ title: parsed.goalTitle, finishCondition: parsed.finishCondition });
+    const goal = createGoal({ title: parsed.goalTitle, finishCondition: parsed.finishCondition, notes: parsed.notes });
     Storage.addGoal(goal).then(async () => {
       const idMap = {};
       for (const sg of parsed.subgoals) {
@@ -3196,14 +3221,23 @@ const App = (() => {
         await Storage.addSubgoal(subgoal);
         idMap[sg.tempId] = subgoal.id;
       }
+      const taskIdMap = {};
       for (const t of parsed.tasks) {
-        const task = createTask({
-          title: t.title,
-          assignedDate: t.assignedDate,
-          goalId: goal.id,
-          subgoalId: t.subgoalTempId ? idMap[t.subgoalTempId] : null,
-        });
+        // Parents come before their subtasks in the outline, so the parent's
+        // real id is already known. Subtasks carry only parentId, matching
+        // tasks made with "+ Add subtask".
+        const task = t.parentTaskTempId
+          ? createTask({ title: t.title, parentId: taskIdMap[t.parentTaskTempId] })
+          : createTask({
+            title: t.title,
+            assignedDate: t.assignedDate,
+            goalId: goal.id,
+            subgoalId: t.subgoalTempId ? idMap[t.subgoalTempId] : null,
+            isHabit: t.isHabit,
+            habitTarget: t.habitTarget,
+          });
         await Storage.addTask(task);
+        taskIdMap[t.tempId] = task.id;
       }
       touchGoal(goal.id);
       closeGoalImportModal();
